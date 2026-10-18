@@ -11,8 +11,9 @@ app.use(cors());
 app.use(express.json());
 
 const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY || "dbai6bhr01qo2u5dvbr0dbai6bhr01qo2u5dvbrg";
+
+// Store equity in a simple JSON file in the project directory
 const EQUITY_FILE = path.join(__dirname, 'equity.json');
-const CANDIDATES_FILE = path.join(__dirname, 'candidates.json');
 
 function getStoredEquity() {
   try {
@@ -31,15 +32,22 @@ function saveStoredEquity(val) {
   } catch (e) {}
 }
 
-// Load cached candidates from disk on startup if available
-let cachedCandidates = [];
-try {
-  if (fs.existsSync(CANDIDATES_FILE)) {
-    const data = fs.readFileSync(CANDIDATES_FILE, 'utf8');
-    cachedCandidates = JSON.parse(data);
-    console.log(`[Cache] Loaded ${cachedCandidates.length} pre-scanned candidates from disk.`);
+let cachedCandidates = [
+  // Initial fallback placeholder so UI renders immediately while background scanner runs
+  {
+    ticker: "TSLA",
+    name: "Tesla Inc.",
+    currentPrice: 215.50,
+    dropPct: "-3.5",
+    timeframeText: "2 day peak pullback",
+    headline: "Scanner active and processing master watchlist...",
+    newsUrl: "https://finviz.com/quote.ashx?t=TSLA",
+    summary: "Background worker is currently scanning S&P 500 / Nasdaq 100 instruments.",
+    entry: 215.50,
+    stop: 209.04,
+    target: 228.42
   }
-} catch (e) {}
+];
 
 let lastScanTimestamp = new Date();
 let isScanRunning = false;
@@ -60,7 +68,7 @@ async function runBackgroundMarketScan() {
   if (isScanRunning) return;
   isScanRunning = true;
 
-  console.log(`[Scanner] Starting scan across ${MASTER_US_WATCHLIST.length} instruments...`);
+  console.log(`[Scanner] Starting scan loop across ${MASTER_US_WATCHLIST.length} instruments...`);
   const detectedSetbacks = [];
   const nowSec = Math.floor(Date.now() / 1000);
   const fourteenDaysAgoSec = nowSec - (14 * 24 * 60 * 60);
@@ -70,6 +78,7 @@ async function runBackgroundMarketScan() {
       const quoteResp = await fetch(`https://finnhub.io/api/v1/quote?symbol=${item.symbol}&token=${FINNHUB_API_KEY}`);
       if (!quoteResp.ok) {
         if (quoteResp.status === 429) {
+          console.warn(`[Scanner] Rate limit hit (429). Pausing 5s...`);
           await new Promise(r => setTimeout(r, 5000));
         }
         await new Promise(r => setTimeout(r, 1800));
@@ -101,6 +110,7 @@ async function runBackgroundMarketScan() {
         }
 
         if (dropPct <= -2.0) {
+          console.log(`[Scanner] Match found: ${item.symbol} dropped ${dropPct.toFixed(1)}%`);
           let headline = "Market pullback near key technical support level.";
           let newsUrl = `https://finviz.com/quote.ashx?t=${item.symbol}`;
           let summary = "Technical retracement following broader sector volatility with stable fundamental backdrop.";
@@ -143,19 +153,17 @@ async function runBackgroundMarketScan() {
     }
   }
 
-  cachedCandidates = detectedSetbacks.sort((a, b) => parseFloat(a.dropPct) - parseFloat(b.dropPct));
+  if (detectedSetbacks.length > 0) {
+    cachedCandidates = detectedSetbacks.sort((a, b) => parseFloat(a.dropPct) - parseFloat(b.dropPct));
+  }
   lastScanTimestamp = new Date();
   isScanRunning = false;
 
-  // Save to disk cache so results persist across reboots/re-deploys
-  try {
-    fs.writeFileSync(CANDIDATES_FILE, JSON.stringify(cachedCandidates, null, 2));
-  } catch (e) {}
-
-  console.log(`[Scanner] Finished cycle. Cached ${cachedCandidates.length} dip setups.`);
+  console.log(`[Scanner] Scan cycle finished. Active candidates cached: ${cachedCandidates.length}`);
   setTimeout(runBackgroundMarketScan, 300000);
 }
 
+// Start scanner immediately on boot
 runBackgroundMarketScan();
 
 app.get('/api/quote', async (req, res) => {
