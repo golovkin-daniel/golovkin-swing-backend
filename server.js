@@ -15,6 +15,26 @@ let cachedCandidates = [];
 let lastScanTimestamp = null;
 let isScanRunning = false;
 
+// In-memory or state storage for account settings
+let appSettings = {
+  equity: 10000
+};
+
+// GET current equity setting
+app.get('/api/settings', (req, res) => {
+  res.json({ success: true, settings: appSettings });
+});
+
+// POST updated equity setting
+app.post('/api/settings', (req, res) => {
+  const { equity } = req.body;
+  if (equity && !isNaN(equity) && equity > 0) {
+    appSettings.equity = parseFloat(equity);
+    return res.json({ success: true, settings: appSettings });
+  }
+  return res.status(400).json({ success: false, error: "Invalid equity value" });
+});
+
 // Helper: Check if US Stock Market is Open (NYSE/NASDAQ: 9:30 AM - 4:00 PM ET, Mon-Fri)
 function getMarketStatus() {
   const now = new Date();
