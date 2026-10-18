@@ -13,7 +13,6 @@ app.use(express.json());
 const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY || "dbai6bhr01qo2u5dvbr0dbai6bhr01qo2u5dvbrg";
 const EQUITY_FILE = path.join(__dirname, 'equity.json');
 
-// Persistent storage helper: Load equity from file or default to 10000
 function getStoredEquity() {
   try {
     if (fs.existsSync(EQUITY_FILE)) {
@@ -51,12 +50,11 @@ function getMarketStatus() {
   return { isOpen: false, text: "Closed (After Hours)" };
 }
 
-// Background scanner with individual try/catch safety so one bad request doesn't break the loop
 async function runBackgroundMarketScan() {
   if (isScanRunning) return;
   isScanRunning = true;
 
-  console.log(`Starting background scan across ${MASTER_US_WATCHLIST.length} instruments...`);
+  console.log(`[Scanner] Starting scan across ${MASTER_US_WATCHLIST.length} instruments...`);
   const detectedSetbacks = [];
   const nowSec = Math.floor(Date.now() / 1000);
   const fourteenDaysAgoSec = nowSec - (14 * 24 * 60 * 60);
@@ -65,7 +63,11 @@ async function runBackgroundMarketScan() {
     try {
       // 1. Fetch Quote
       const quoteResp = await fetch(`https://finnhub.io/api/v1/quote?symbol=${item.symbol}&token=${FINNHUB_API_KEY}`);
-      if (!quoteResp.ok) continue;
+      if (!quoteResp.ok) {
+        console.warn(`[Scanner] Quote API limit/error for ${item.symbol}: ${quoteResp.status}`);
+        await new Promise(r => setTimeout(r, 1200));
+        continue;
+      }
       const quote = await quoteResp.json();
 
       if (quote && quote.c && quote.c > 0 && quote.pc > 0) {
@@ -90,8 +92,9 @@ async function runBackgroundMarketScan() {
           }
         }
 
-        // Trigger set back filter: Drop >= 2.0%
+        // Check Setback Condition (Drop >= 2.0%)
         if (dropPct <= -2.0) {
+          console.log(`[Scanner] Setback detected on ${item.symbol}: ${dropPct.toFixed(1)}%`);
           let headline = "Market pullback near key technical support level.";
           let newsUrl = `https://finviz.com/quote.ashx?t=${item.symbol}`;
           let summary = "Technical retracement following broader sector volatility with stable fundamental backdrop.";
@@ -108,7 +111,7 @@ async function runBackgroundMarketScan() {
               summary = news[0].summary || summary;
             }
           } catch (newsErr) {
-            // Non-critical, fallback values will be used
+            // Non-critical
           }
 
           const estimatedStop = currentPrice * 0.97;
@@ -116,7 +119,7 @@ async function runBackgroundMarketScan() {
 
           detectedSetbacks.push({
             ticker: item.symbol,
-            name: item.name,
+            name: item.name || item.symbol,
             currentPrice,
             dropPct: dropPct.toFixed(1),
             timeframeText,
@@ -129,10 +132,11 @@ async function runBackgroundMarketScan() {
           });
         }
       }
-      // Pacing delay to respect 60 calls/minute limit safely
-      await new Promise(r => setTimeout(r, 350));
+      
+      // Strict 1.2 second pause per stock to respect Finnhub 60 req/min limit
+      await new Promise(r => setTimeout(r, 1200));
     } catch (err) {
-      console.error(`Error scanning ${item.symbol}:`, err.message);
+      console.error(`[Scanner] Error processing ${item.symbol}:`, err.message);
     }
   }
 
@@ -140,11 +144,11 @@ async function runBackgroundMarketScan() {
   lastScanTimestamp = new Date();
   isScanRunning = false;
 
-  console.log(`Scan finished. Found ${cachedCandidates.length} dip setups.`);
-  setTimeout(runBackgroundMarketScan, 180000); // Re-scan every 3 minutes
+  console.log(`[Scanner] Finished cycle. Found ${cachedCandidates.length} dip setups.`);
+  setTimeout(runBackgroundMarketScan, 300000); // Re-scan every 5 minutes
 }
 
-// Kick off scanner immediately upon start
+// Kick off scanner on boot
 runBackgroundMarketScan();
 
 app.get('/api/quote', async (req, res) => {
