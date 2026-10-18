@@ -9,36 +9,21 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// --- 1. SETTINGS STORAGE ---
+let appSettings = {
+  equity: 10000
+};
+
 const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY || "dbai6bhr01qo2u5dvbr0dbai6bhr01qo2u5dvbrg";
 
 let cachedCandidates = [];
 let lastScanTimestamp = null;
 let isScanRunning = false;
 
-// In-memory or state storage for account settings
-let appSettings = {
-  equity: 10000
-};
-
-// GET current equity setting
-app.get('/api/settings', (req, res) => {
-  res.json({ success: true, settings: appSettings });
-});
-
-// POST updated equity setting
-app.post('/api/settings', (req, res) => {
-  const { equity } = req.body;
-  if (equity && !isNaN(equity) && equity > 0) {
-    appSettings.equity = parseFloat(equity);
-    return res.json({ success: true, settings: appSettings });
-  }
-  return res.status(400).json({ success: false, error: "Invalid equity value" });
-});
-
-// Helper: Check if US Stock Market is Open (NYSE/NASDAQ: 9:30 AM - 4:00 PM ET, Mon-Fri)
+// Helper: Check if US Stock Market is Open
 function getMarketStatus() {
   const now = new Date();
-  const utcDay = now.getUTCDay(); // 0 = Sun, 6 = Sat
+  const utcDay = now.getUTCDay();
   if (utcDay === 0 || utcDay === 6) return { isOpen: false, text: "Closed (Weekend)" };
 
   const hoursET = (now.getUTCHours() - 5 + 24) % 24;
@@ -55,7 +40,7 @@ async function runBackgroundMarketScan() {
   if (isScanRunning) return;
   isScanRunning = true;
 
-  console.log(`Starting background scan across ${MASTER_US_WATCHLIST.length} instruments from watchlist.json...`);
+  console.log(`Starting background scan across ${MASTER_US_WATCHLIST.length} instruments...`);
   const detectedSetbacks = [];
   const nowSec = Math.floor(Date.now() / 1000);
   const fourteenDaysAgoSec = nowSec - (14 * 24 * 60 * 60);
@@ -86,7 +71,6 @@ async function runBackgroundMarketScan() {
           }
         }
 
-        // Capture dips >= 2.0%
         if (dropPct <= -2.0) {
           const todayStr = new Date().toISOString().split('T')[0];
           const lastWeekStr = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
@@ -122,7 +106,7 @@ async function runBackgroundMarketScan() {
           });
         }
       }
-      await new Promise(r => setTimeout(r, 1200)); // 1.2s delay to protect rate limits
+      await new Promise(r => setTimeout(r, 1200));
     } catch (err) {
       console.error(`Error scanning ${item.symbol}:`, err.message);
     }
@@ -132,11 +116,9 @@ async function runBackgroundMarketScan() {
   lastScanTimestamp = new Date();
   isScanRunning = false;
 
-  console.log(`Scan cycle finished. Found ${cachedCandidates.length} dip setups.`);
-  setTimeout(runBackgroundMarketScan, 180000); // Re-scan every 3 minutes
+  setTimeout(runBackgroundMarketScan, 180000);
 }
 
-// Start background loop
 runBackgroundMarketScan();
 
 app.get('/api/quote', async (req, res) => {
@@ -162,6 +144,20 @@ app.get('/api/setbacks', (req, res) => {
     count: cachedCandidates.length,
     candidates: cachedCandidates
   });
+});
+
+// --- 2. SETTINGS ENDPOINTS (Paste right before app.listen) ---
+app.get('/api/settings', (req, res) => {
+  res.json({ success: true, settings: appSettings });
+});
+
+app.post('/api/settings', (req, res) => {
+  const { equity } = req.body;
+  if (equity && !isNaN(equity) && equity > 0) {
+    appSettings.equity = parseFloat(equity);
+    return res.json({ success: true, settings: appSettings });
+  }
+  return res.status(400).json({ success: false, error: "Invalid equity value" });
 });
 
 const PORT = process.env.PORT || 3000;
