@@ -12,7 +12,6 @@ app.use(express.json());
 
 const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY || "dbai6bhr01qo2u5dvbr0dbai6bhr01qo2u5dvbrg";
 
-// Store equity in a simple JSON file in the project directory
 const EQUITY_FILE = path.join(__dirname, 'equity.json');
 
 function getStoredEquity() {
@@ -33,7 +32,6 @@ function saveStoredEquity(val) {
 }
 
 let cachedCandidates = [
-  // Initial fallback placeholder so UI renders immediately while background scanner runs
   {
     ticker: "TSLA",
     name: "Tesla Inc.",
@@ -68,7 +66,7 @@ async function runBackgroundMarketScan() {
   if (isScanRunning) return;
   isScanRunning = true;
 
-  console.log(`[Scanner] Starting scan loop across ${MASTER_US_WATCHLIST.length} instruments...`);
+  console.log(`[Scanner] Starting live incremental scan across ${MASTER_US_WATCHLIST.length} instruments...`);
   const detectedSetbacks = [];
   const nowSec = Math.floor(Date.now() / 1000);
   const fourteenDaysAgoSec = nowSec - (14 * 24 * 60 * 60);
@@ -110,7 +108,7 @@ async function runBackgroundMarketScan() {
         }
 
         if (dropPct <= -2.0) {
-          console.log(`[Scanner] Match found: ${item.symbol} dropped ${dropPct.toFixed(1)}%`);
+          console.log(`[Scanner] Live match found: ${item.symbol} dropped ${dropPct.toFixed(1)}%`);
           let headline = "Market pullback near key technical support level.";
           let newsUrl = `https://finviz.com/quote.ashx?t=${item.symbol}`;
           let summary = "Technical retracement following broader sector volatility with stable fundamental backdrop.";
@@ -131,7 +129,7 @@ async function runBackgroundMarketScan() {
           const estimatedStop = currentPrice * 0.97;
           const estimatedTarget = currentPrice + ((currentPrice - estimatedStop) * 2);
 
-          detectedSetbacks.push({
+          const candidate = {
             ticker: item.symbol,
             name: item.name || item.symbol,
             currentPrice,
@@ -143,7 +141,12 @@ async function runBackgroundMarketScan() {
             entry: currentPrice,
             stop: estimatedStop,
             target: estimatedTarget
-          });
+          };
+
+          detectedSetbacks.push(candidate);
+
+          // INCREMENTAL UPDATE: Push candidates to live cache immediately as they are discovered!
+          cachedCandidates = [...detectedSetbacks].sort((a, b) => parseFloat(a.dropPct) - parseFloat(b.dropPct));
         }
       }
       
@@ -153,17 +156,13 @@ async function runBackgroundMarketScan() {
     }
   }
 
-  if (detectedSetbacks.length > 0) {
-    cachedCandidates = detectedSetbacks.sort((a, b) => parseFloat(a.dropPct) - parseFloat(b.dropPct));
-  }
   lastScanTimestamp = new Date();
   isScanRunning = false;
 
-  console.log(`[Scanner] Scan cycle finished. Active candidates cached: ${cachedCandidates.length}`);
+  console.log(`[Scanner] Scan cycle completed. Total candidates found: ${cachedCandidates.length}`);
   setTimeout(runBackgroundMarketScan, 300000);
 }
 
-// Start scanner immediately on boot
 runBackgroundMarketScan();
 
 app.get('/api/quote', async (req, res) => {
