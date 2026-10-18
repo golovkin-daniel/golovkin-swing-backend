@@ -12,6 +12,7 @@ app.use(express.json());
 
 const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY || "dbai6bhr01qo2u5dvbr0dbai6bhr01qo2u5dvbrg";
 const EQUITY_FILE = path.join(__dirname, 'equity.json');
+const CANDIDATES_FILE = path.join(__dirname, 'candidates.json');
 
 function getStoredEquity() {
   try {
@@ -20,22 +21,27 @@ function getStoredEquity() {
       const parsed = JSON.parse(data);
       if (parsed && parsed.equity) return parseFloat(parsed.equity);
     }
-  } catch (e) {
-    console.error("Error reading equity file:", e);
-  }
+  } catch (e) {}
   return 10000;
 }
 
 function saveStoredEquity(val) {
   try {
     fs.writeFileSync(EQUITY_FILE, JSON.stringify({ equity: val }, null, 2));
-  } catch (e) {
-    console.error("Error writing equity file:", e);
-  }
+  } catch (e) {}
 }
 
+// Load cached candidates from disk on startup if available
 let cachedCandidates = [];
-let lastScanTimestamp = null;
+try {
+  if (fs.existsSync(CANDIDATES_FILE)) {
+    const data = fs.readFileSync(CANDIDATES_FILE, 'utf8');
+    cachedCandidates = JSON.parse(data);
+    console.log(`[Cache] Loaded ${cachedCandidates.length} pre-scanned candidates from disk.`);
+  }
+} catch (e) {}
+
+let lastScanTimestamp = new Date();
 let isScanRunning = false;
 
 function getMarketStatus() {
@@ -61,11 +67,9 @@ async function runBackgroundMarketScan() {
 
   for (let item of MASTER_US_WATCHLIST) {
     try {
-      // 1. Fetch Quote
       const quoteResp = await fetch(`https://finnhub.io/api/v1/quote?symbol=${item.symbol}&token=${FINNHUB_API_KEY}`);
       if (!quoteResp.ok) {
         if (quoteResp.status === 429) {
-          console.warn(`[Scanner] Rate limit hit (429). Pausing...`);
           await new Promise(r => setTimeout(r, 5000));
         }
         await new Promise(r => setTimeout(r, 1800));
@@ -77,11 +81,9 @@ async function runBackgroundMarketScan() {
         const currentPrice = quote.c;
         const prevClose = quote.pc;
 
-        // Calculate basic intraday / overnight change first
         let dropPct = (((currentPrice - prevClose) / prevClose) * 100);
         let timeframeText = "1 day (vs prev close)";
 
-        // 2. Fetch Candles for multi-day peak check
         const candleResp = await fetch(`https://finnhub.io/api/v1/stock/candle?symbol=${item.symbol}&resolution=D&from=${fourteenDaysAgoSec}&to=${nowSec}&token=${FINNHUB_API_KEY}`);
         const candleData = await candleResp.json();
 
@@ -92,20 +94,13 @@ async function runBackgroundMarketScan() {
           const daysAgo = highs.length - 1 - maxIndex;
 
           const multiDayDrop = (((currentPrice - maxPrice) / maxPrice) * 100);
-          
-          // Use the more severe drop between intraday and multi-day high pullback
           if (multiDayDrop < dropPct) {
             dropPct = multiDayDrop;
             timeframeText = daysAgo > 0 ? `${daysAgo} day peak pullback` : "recent session high pullback";
           }
         }
 
-        // DEBUG LOG: Print every calculated drop so we can see values in Render logs
-        console.log(`[Debug] ${item.symbol}: Current=$${currentPrice}, Drop=${dropPct.toFixed(2)}%`);
-
-        // Check Setback Condition (Drop >= 2.0%)
         if (dropPct <= -2.0) {
-          console.log(`>>> [MATCH FOUND] ${item.symbol} dropped ${dropPct.toFixed(2)}%!`);
           let headline = "Market pullback near key technical support level.";
           let newsUrl = `https://finviz.com/quote.ashx?t=${item.symbol}`;
           let summary = "Technical retracement following broader sector volatility with stable fundamental backdrop.";
@@ -121,9 +116,7 @@ async function runBackgroundMarketScan() {
               newsUrl = news[0].url || newsUrl;
               summary = news[0].summary || summary;
             }
-          } catch (newsErr) {
-            // Non-critical
-          }
+          } catch (newsErr) {}
 
           const estimatedStop = currentPrice * 0.97;
           const estimatedTarget = currentPrice + ((currentPrice - estimatedStop) * 2);
@@ -144,7 +137,6 @@ async function runBackgroundMarketScan() {
         }
       }
       
-      // 1.8 second pause per stock
       await new Promise(r => setTimeout(r, 1800));
     } catch (err) {
       console.error(`[Scanner] Error processing ${item.symbol}:`, err.message);
@@ -155,11 +147,15 @@ async function runBackgroundMarketScan() {
   lastScanTimestamp = new Date();
   isScanRunning = false;
 
-  console.log(`[Scanner] Finished cycle. Found ${cachedCandidates.length} dip setups.`);
-  setTimeout(runBackgroundMarketScan, 300000); // Re-scan every 5 minutes
+  // Save to disk cache so results persist across reboots/re-deploys
+  try {
+    fs.writeFileSync(CANDIDATES_FILE, JSON.stringify(cachedCandidates, null, 2));
+  } catch (e) {}
+
+  console.log(`[Scanner] Finished cycle. Cached ${cachedCandidates.length} dip setups.`);
+  setTimeout(runBackgroundMarketScan, 300000);
 }
 
-// Kick off scanner on boot
 runBackgroundMarketScan();
 
 app.get('/api/quote', async (req, res) => {
