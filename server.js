@@ -54,7 +54,7 @@ async function runBackgroundMarketScan() {
   if (isScanRunning) return;
   isScanRunning = true;
 
-  console.log(`[Scanner] Starting scan across ${MASTER_US_WATCHLIST.length} instruments...`);
+  console.log(`[Scanner] Starting safe rate-limited scan across ${MASTER_US_WATCHLIST.length} instruments...`);
   const detectedSetbacks = [];
   const nowSec = Math.floor(Date.now() / 1000);
   const fourteenDaysAgoSec = nowSec - (14 * 24 * 60 * 60);
@@ -64,8 +64,12 @@ async function runBackgroundMarketScan() {
       // 1. Fetch Quote
       const quoteResp = await fetch(`https://finnhub.io/api/v1/quote?symbol=${item.symbol}&token=${FINNHUB_API_KEY}`);
       if (!quoteResp.ok) {
-        console.warn(`[Scanner] Quote API limit/error for ${item.symbol}: ${quoteResp.status}`);
-        await new Promise(r => setTimeout(r, 1200));
+        console.warn(`[Scanner] Rate limit hit (429) on ${item.symbol}. Backing off...`);
+        // If we hit a 429, pause an extra 5 seconds to clear the rate limit window
+        if (quoteResp.status === 429) {
+          await new Promise(r => setTimeout(r, 5000));
+        }
+        await new Promise(r => setTimeout(r, 2000));
         continue;
       }
       const quote = await quoteResp.json();
@@ -133,8 +137,8 @@ async function runBackgroundMarketScan() {
         }
       }
       
-      // Strict 1.2 second pause per stock to respect Finnhub 60 req/min limit
-      await new Promise(r => setTimeout(r, 1200));
+      // Safe 1.8 second pause per stock to stay well under Finnhub's 60 req/min limit
+      await new Promise(r => setTimeout(r, 1800));
     } catch (err) {
       console.error(`[Scanner] Error processing ${item.symbol}:`, err.message);
     }
