@@ -1,8 +1,5 @@
 [
   
-// ==========================================
-// 1. Software, Cloud & AI Infrastructure
-// ==========================================
 { symbol: "AAPL", name: "Apple Inc." }, { symbol: "MSFT", name: "Microsoft Corp." }, { symbol: "NVDA", name: "NVIDIA Corp." },
 { symbol: "AMZN", name: "Amazon.com Inc." }, { symbol: "GOOGL", name: "Alphabet Inc." }, { symbol: "META", name: "Meta Platforms Inc." },
 { symbol: "ORCL", name: "Oracle Corp." }, { symbol: "CRM", name: "Salesforce Inc." }, { symbol: "ADBE", name: "Adobe Inc." },
@@ -23,9 +20,6 @@
 { symbol: "FSLY", name: "Fastly Inc." }, { symbol: "CFLT", name: "Confluent Inc." }, { symbol: "SMAR", name: "Smartsheet Inc." },
 { symbol: "BILL", name: "BILL Holdings Inc." }, { symbol: "S", name: "SentinelOne Inc." }, { symbol: "BLZE", name: "Backblaze Inc." },
 
-// ==========================================
-// 2. Semiconductors & Chip Equipment
-// ==========================================
 { symbol: "AVGO", name: "Broadcom Inc." }, { symbol: "AMD", name: "Advanced Micro Devices" }, { symbol: "TSM", name: "Taiwan Semiconductor Mfg" },
 { symbol: "QCOM", name: "Qualcomm Inc." }, { symbol: "TXN", name: "Texas Instruments" }, { symbol: "AMAT", name: "Applied Materials" },
 { symbol: "MU", name: "Micron Technology" }, { symbol: "LRCX", name: "Lam Research" }, { symbol: "KLAC", name: "KLA Corp." },
@@ -37,9 +31,6 @@
 { symbol: "WDC", name: "Western Digital" }, { symbol: "STX", name: "Seagate Technology" }, { symbol: "MKSI", name: "MKS Instruments" },
 { symbol: "LSCC", name: "Lattice Semiconductor" }, { symbol: "SMCI", name: "Super Micro Computer" }, { symbol: "RMBS", name: "Rambus Inc." },
 
-// ==========================================
-// 3. Banking, Financial Services & Asset Management
-// ==========================================
 { symbol: "JPM", name: "JPMorgan Chase & Co." }, { symbol: "BAC", name: "Bank of America" }, { symbol: "WFC", name: "Wells Fargo & Co." },
 { symbol: "C", name: "Citigroup Inc." }, { symbol: "GS", name: "Goldman Sachs Group" }, { symbol: "MS", name: "Morgan Stanley" },
 { symbol: "V", name: "Visa Inc." }, { symbol: "MA", name: "Mastercard Inc." }, { symbol: "AXP", name: "American Express" },
@@ -58,9 +49,6 @@
 { symbol: "AIG", name: "American International Group" }, { symbol: "MET", name: "MetLife Inc." }, { symbol: "PRU", name: "Prudential Financial" },
 { symbol: "AFL", name: "Aflac Inc." }, { symbol: "HIG", name: "Hartford Financial" }, { symbol: "AJG", name: "Arthur J. Gallagher" },
 
-// ==========================================
-// 4. Healthcare, Pharmaceuticals & Biotech
-// ==========================================
 { symbol: "LLY", name: "Eli Lilly & Co." }, { symbol: "UNH", name: "UnitedHealth Group" }, { symbol: "JNJ", name: "Johnson & Johnson" },
 { symbol: "ABBV", name: "AbbVie Inc." }, { symbol: "MRK", name: "Merck & Co." }, { symbol: "PFE", name: "Pfizer Inc." },
 { symbol: "TMO", name: "Thermo Fisher Scientific" }, { symbol: "ABT", name: "Abbott Laboratories" }, { symbol: "DHR", name: "Danaher Corp." },
@@ -77,9 +65,6 @@
 { symbol: "RMD", name: "ResMed Inc." }, { symbol: "STE", name: "STERIS plc" }, { symbol: "HOLX", name: "Hologic Inc." },
 { symbol: "BAX", name: "Baxter International" }, { symbol: "BDX", name: "Becton Dickinson" }, { symbol: "ZBH", name: "Zimmer Biomet" },
 
-// ==========================================
-// 5. Consumer Discretionary, Retail & E-Commerce
-// ==========================================
 { symbol: "TSLA", name: "Tesla Inc." }, { symbol: "HD", name: "Home Depot Inc." }, { symbol: "COST", name: "Costco Wholesale" },
 { symbol: "WMT", name: "Walmart Inc." }, { symbol: "TGT", name: "Target Corp." }, { symbol: "LOW", name: "Lowe's Companies" },
 { symbol: "NKE", name: "Nike Inc." }, { symbol: "SBUX", name: "Starbucks Corp." }, { symbol: "MCD", name: "McDonald's Corp." },
@@ -96,9 +81,6 @@
 { symbol: "LKQ", name: "LKQ Corp." }, { symbol: "GPN", name: "Global Payments" }, { symbol: "WSM", name: "Williams-Sonoma" },
 { symbol: "RH", name: "RH (Restoration Hardware)" }, { symbol: "POOL", name: "Pool Corp." }, { symbol: "YUMC", name: "Yum China Holdings" },
 
-// ==========================================
-// 6. Consumer Staples, Food & Household Goods
-// ==========================================
 { symbol: "PG", name: "Procter & Gamble Co." }, { symbol: "KO", name: "Coca-Cola Co." }, { symbol: "PEP", name: "PepsiCo Inc." },
 { symbol: "PM", name: "Philip Morris International" }, { symbol: "MO", name: "Altria Group Inc." }, { symbol: "MDLZ", name: "Mondelez International" },
 { symbol: "CL", name: "Colgate-Palmolive Co." }, { symbol: "KMB", name: "Kimberly-Clark Corp." }, { symbol: "GIS", name: "General Mills Inc." },
@@ -109,9 +91,6 @@
 { symbol: "HRL", name: "Hormel Foods" }, { symbol: "MKC", name: "McCormick & Co." }, { symbol: "CLX", name: "Clorox Co." },
 { symbol: "CHD", name: "Church & Dwight" }, { symbol: "TAP", name: "Molson Coors Beverage" }, { symbol: "BF.B", name: "Brown-Forman Corp." },
 
-// ==========================================
-// 7. Media, Gaming, Entertainment & Telecom
-// ==========================================
 { symbol: "NFLX", name: "Netflix Inc." }, { symbol: "DIS", name: "Walt Disney Co." }, { symbol: "CMCSA", name: "Comcast Corp." },
 { symbol: "TMUS", name: "T-Mobile US Inc." }, { symbol: "VZ", name: "Verizon Communications" }, { symbol: "T", name: "AT&T Inc." },
 { symbol: "CHTR", name: "Charter Communications" }, { symbol: "EA", name: "Electronic Arts Inc." }, { symbol: "TTWO", name: "Take-Two Interactive" },
@@ -120,9 +99,6 @@
 { symbol: "PINS", name: "Pinterest Inc." }, { symbol: "WBD", name: "Warner Bros. Discovery" }, { symbol: "PARA", name: "Paramount Global" },
 { symbol: "FWONK", name: "Formula One Group" }, { symbol: "WMG", name: "Warner Music Group" }, { symbol: "SIRIN", name: "Sirius XM Holdings" },
 
-// ==========================================
-// 8. Industrials, Defense & Logistics
-// ==========================================
 { symbol: "CAT", name: "Caterpillar Inc." }, { symbol: "GE", name: "GE Aerospace" }, { symbol: "GEV", name: "GE Vernova Inc." },
 { symbol: "BA", name: "Boeing Co." }, { symbol: "HON", name: "Honeywell International" }, { symbol: "UNP", name: "Union Pacific Corp." },
 { symbol: "LMT", name: "Lockheed Martin Corp." }, { symbol: "RTX", name: "RTX Corp." }, { symbol: "DE", name: "Deere & Co." },
@@ -137,17 +113,11 @@
 { symbol: "EFX", name: "Equifax Inc." }, { symbol: "TRI", name: "Thomson Reuters" }, { symbol: "INFO", name: "IHS Markit" },
 { symbol: "VERX", name: "Vertex Inc." }, { symbol: "CP", name: "Canadian Pacific Kansas City" }, { symbol: "CNI", name: "Canadian National Railway" },
 
-// ==========================================
-// 9. Automotive, Mobility & Clean Tech
-// ==========================================
 { symbol: "F", name: "Ford Motor Co." }, { symbol: "GM", name: "General Motors Co." }, { symbol: "RIVN", name: "Rivian Automotive" },
 { symbol: "LCID", name: "Lucid Group Inc." }, { symbol: "UBER", name: "Uber Technologies" }, { symbol: "LYFT", name: "Lyft Inc." },
 { symbol: "ENPH", name: "Enphase Energy" }, { symbol: "FSLR", name: "First Solar Inc." }, { symbol: "SEDG", name: "SolarEdge Technologies" },
 { symbol: "RUN", name: "Sunrun Inc." }, { symbol: "CHPT", name: "ChargePoint Holdings" }, { symbol: "BLNK", name: "Blink Charging" },
 
-// ==========================================
-// 10. Energy, Oil, Gas & Utilities
-// ==========================================
 { symbol: "XOM", name: "ExxonMobil Corp." }, { symbol: "CVX", name: "Chevron Corp." }, { symbol: "COP", name: "ConocoPhillips" },
 { symbol: "SLB", name: "Schlumberger Ltd." }, { symbol: "EOG", name: "EOG Resources Inc." }, { symbol: "MPC", name: "Marathon Petroleum" },
 { symbol: "PSX", name: "Phillips 66" }, { symbol: "VLO", name: "Valero Energy Corp." }, { symbol: "OXY", name: "Occidental Petroleum" },
@@ -158,9 +128,6 @@
 { symbol: "XEL", name: "Xcel Energy" }, { symbol: "ED", name: "Consolidated Edison" }, { symbol: "WEC", name: "WEC Energy Group" }, { symbol: "ES", name: "Eversource Energy" },
 { symbol: "D", name: "Dominion Energy" }, { symbol: "PEG", name: "Public Service Enterprise" }, { symbol: "AWK", name: "American Water Works" },
 
-// ==========================================
-// 11. Real Estate & REITs
-// ==========================================
 { symbol: "PLD", name: "Prologis Inc." }, { symbol: "AMT", name: "American Tower Corp." }, { symbol: "EQIX", name: "Equinix Inc." },
 { symbol: "WELL", name: "Welltower Inc." }, { symbol: "CCI", name: "Crown Castle Inc." }, { symbol: "O", name: "Realty Income Corp." },
 { symbol: "PSA", name: "Public Storage" }, { symbol: "SPG", name: "Simon Property Group" }, { symbol: "DLR", name: "Digital Realty Trust" },
@@ -169,9 +136,6 @@
 { symbol: "WY", name: "Weyerhaeuser Co." }, { symbol: "ARE", name: "Alexandria Real Estate" }, { symbol: "MAA", name: "Mid-America Apartment" },
 { symbol: "UDR", name: "UDR Inc." }, { symbol: "ESS", name: "Essex Property Trust" }, { symbol: "CPT", name: "Camden Property Trust" },
 
-// ==========================================
-// 12. Basic Materials & Chemicals
-// ==========================================
 { symbol: "LIN", name: "Linde plc" }, { symbol: "APD", name: "Air Products & Chemicals" }, { symbol: "SHW", name: "Sherwin-Williams Co." },
 { symbol: "FCX", name: "Freeport-McMoRan Inc." }, { symbol: "NEM", name: "Newmont Corp." }, { symbol: "ECL", name: "Ecolab Inc." },
 { symbol: "DOW", name: "Dow Inc." }, { symbol: "DD", name: "DuPont de Nemours" }, { symbol: "NUE", name: "Nucor Corp." },
@@ -179,9 +143,6 @@
 { symbol: "MOS", name: "Mosaic Co." }, { symbol: "FMC", name: "FMC Corp." }, { symbol: "ALB", name: "Albemarle Corp." },
 { symbol: "STLD", name: "Steel Dynamics" }, { symbol: "CLF", name: "Cleveland-Cliffs" }, { symbol: "X", name: "United States Steel" },
 
-// ==========================================
-// 13. Index, Sector & Style ETFs
-// ==========================================
 { symbol: "SPY", name: "SPDR S&P 500 ETF" }, { symbol: "VOO", name: "Vanguard S&P 500 ETF" }, { symbol: "IVV", name: "iShares Core S&P 500" },
 { symbol: "QQQ", name: "Invesco QQQ Trust" }, { symbol: "IWM", name: "iShares Russell 2000" }, { symbol: "DIA", name: "SPDR Dow Jones ETF" },
 { symbol: "VTI", name: "Vanguard Total Stock Market" }, { symbol: "SMH", name: "VanEck Semiconductor ETF" }, { symbol: "XLF", name: "Financial Select Sector SPDR" },
