@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const fetch = require('node-fetch');
+const fs = require('fs');
+const path = require('path');
 
 const MASTER_US_WATCHLIST = require('./watchlist.json');
 
@@ -8,11 +10,30 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-let appSettings = {
-  equity: 10000
-};
-
 const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY || "dbai6bhr01qo2u5dvbr0dbai6bhr01qo2u5dvbrg";
+const EQUITY_FILE = path.join(__dirname, 'equity.json');
+
+// Persistent storage helper: Load equity from file or default to 10000
+function getStoredEquity() {
+  try {
+    if (fs.existsSync(EQUITY_FILE)) {
+      const data = fs.readFileSync(EQUITY_FILE, 'utf8');
+      const parsed = JSON.parse(data);
+      if (parsed && parsed.equity) return parseFloat(parsed.equity);
+    }
+  } catch (e) {
+    console.error("Error reading equity file:", e);
+  }
+  return 10000;
+}
+
+function saveStoredEquity(val) {
+  try {
+    fs.writeFileSync(EQUITY_FILE, JSON.stringify({ equity: val }, null, 2));
+  } catch (e) {
+    console.error("Error writing equity file:", e);
+  }
+}
 
 let cachedCandidates = [];
 let lastScanTimestamp = null;
@@ -30,54 +51,34 @@ function getMarketStatus() {
   return { isOpen: false, text: "Closed (After Hours)" };
 }
 
-// Helper: Process an array in concurrent chunks to speed up scanning
-async function asyncPool(poolLimit, array, iteratorFn) {
-  let index = 0;
-  const ret = [];
-  const executing = [];
-  const enqueue = async () => {
-    if (index === array.length) return;
-    const item = array[index++];
-    const p = Promise.resolve().then(() => iteratorFn(item, array));
-    ret.push(p);
-    const e = p.then(() => executing.splice(executing.indexOf(e), 1));
-    executing.push(e);
-    let r = Promise.resolve();
-    if (executing.length >= poolLimit) {
-      r = Promise.race(executing);
-    }
-    await r;
-    await enqueue();
-  };
-  await enqueue();
-  return Promise.all(ret);
-}
-
+// Background scanner with individual try/catch safety so one bad request doesn't break the loop
 async function runBackgroundMarketScan() {
   if (isScanRunning) return;
   isScanRunning = true;
 
-  console.log(`Starting fast batched scan across ${MASTER_US_WATCHLIST.length} instruments...`);
+  console.log(`Starting background scan across ${MASTER_US_WATCHLIST.length} instruments...`);
   const detectedSetbacks = [];
   const nowSec = Math.floor(Date.now() / 1000);
   const fourteenDaysAgoSec = nowSec - (14 * 24 * 60 * 60);
 
-  // Scan in concurrent pools of 3 to respect Finnhub limits while speeding up execution
-  await asyncPool(3, MASTER_US_WATCHLIST, async (item) => {
+  for (let item of MASTER_US_WATCHLIST) {
     try {
+      // 1. Fetch Quote
       const quoteResp = await fetch(`https://finnhub.io/api/v1/quote?symbol=${item.symbol}&token=${FINNHUB_API_KEY}`);
+      if (!quoteResp.ok) continue;
       const quote = await quoteResp.json();
 
-      if (quote && quote.c && quote.c > 0) {
+      if (quote && quote.c && quote.c > 0 && quote.pc > 0) {
         const currentPrice = quote.c;
 
+        // 2. Fetch Candles
         const candleResp = await fetch(`https://finnhub.io/api/v1/stock/candle?symbol=${item.symbol}&resolution=D&from=${fourteenDaysAgoSec}&to=${nowSec}&token=${FINNHUB_API_KEY}`);
         const candleData = await candleResp.json();
 
         let dropPct = (((currentPrice - quote.pc) / quote.pc) * 100);
         let timeframeText = "1 day";
 
-        if (candleData && candleData.s === 'ok' && candleData.c && candleData.c.length > 1) {
+        if (candleData && candleData.s === 'ok' && Array.isArray(candleData.c) && candleData.c.length > 1) {
           const closes = candleData.c;
           const maxPrice = Math.max(...closes);
           const maxIndex = closes.indexOf(maxPrice);
@@ -89,21 +90,25 @@ async function runBackgroundMarketScan() {
           }
         }
 
-        // Check Setback Condition (>= 2.0% drop)
+        // Trigger set back filter: Drop >= 2.0%
         if (dropPct <= -2.0) {
-          const todayStr = new Date().toISOString().split('T')[0];
-          const lastWeekStr = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-          const newsResp = await fetch(`https://finnhub.io/api/v1/company-news?symbol=${item.symbol}&from=${lastWeekStr}&to=${todayStr}&token=${FINNHUB_API_KEY}`);
-          const news = await newsResp.json();
-
           let headline = "Market pullback near key technical support level.";
           let newsUrl = `https://finviz.com/quote.ashx?t=${item.symbol}`;
           let summary = "Technical retracement following broader sector volatility with stable fundamental backdrop.";
 
-          if (Array.isArray(news) && news.length > 0) {
-            headline = news[0].headline || headline;
-            newsUrl = news[0].url || newsUrl;
-            summary = news[0].summary || summary;
+          try {
+            const todayStr = new Date().toISOString().split('T')[0];
+            const lastWeekStr = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+            const newsResp = await fetch(`https://finnhub.io/api/v1/company-news?symbol=${item.symbol}&from=${lastWeekStr}&to=${todayStr}&token=${FINNHUB_API_KEY}`);
+            const news = await newsResp.json();
+
+            if (Array.isArray(news) && news.length > 0) {
+              headline = news[0].headline || headline;
+              newsUrl = news[0].url || newsUrl;
+              summary = news[0].summary || summary;
+            }
+          } catch (newsErr) {
+            // Non-critical, fallback values will be used
           }
 
           const estimatedStop = currentPrice * 0.97;
@@ -124,21 +129,22 @@ async function runBackgroundMarketScan() {
           });
         }
       }
-      // Small pause between batch calls
-      await new Promise(r => setTimeout(r, 400));
+      // Pacing delay to respect 60 calls/minute limit safely
+      await new Promise(r => setTimeout(r, 350));
     } catch (err) {
       console.error(`Error scanning ${item.symbol}:`, err.message);
     }
-  });
+  }
 
   cachedCandidates = detectedSetbacks.sort((a, b) => parseFloat(a.dropPct) - parseFloat(b.dropPct));
   lastScanTimestamp = new Date();
   isScanRunning = false;
 
-  console.log(`Scan finished successfully. Found ${cachedCandidates.length} dip setups.`);
-  setTimeout(runBackgroundMarketScan, 120000); // Re-scan every 2 minutes
+  console.log(`Scan finished. Found ${cachedCandidates.length} dip setups.`);
+  setTimeout(runBackgroundMarketScan, 180000); // Re-scan every 3 minutes
 }
 
+// Kick off scanner immediately upon start
 runBackgroundMarketScan();
 
 app.get('/api/quote', async (req, res) => {
@@ -167,14 +173,15 @@ app.get('/api/setbacks', (req, res) => {
 });
 
 app.get('/api/settings', (req, res) => {
-  res.json({ success: true, settings: appSettings });
+  res.json({ success: true, settings: { equity: getStoredEquity() } });
 });
 
 app.post('/api/settings', (req, res) => {
   const { equity } = req.body;
   if (equity && !isNaN(equity) && equity > 0) {
-    appSettings.equity = parseFloat(equity);
-    return res.json({ success: true, settings: appSettings });
+    const val = parseFloat(equity);
+    saveStoredEquity(val);
+    return res.json({ success: true, settings: { equity: val } });
   }
   return res.status(400).json({ success: false, error: "Invalid equity value" });
 });
