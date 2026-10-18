@@ -54,7 +54,7 @@ async function runBackgroundMarketScan() {
   if (isScanRunning) return;
   isScanRunning = true;
 
-  console.log(`[Scanner] Starting safe rate-limited scan across ${MASTER_US_WATCHLIST.length} instruments...`);
+  console.log(`[Scanner] Starting scan across ${MASTER_US_WATCHLIST.length} instruments...`);
   const detectedSetbacks = [];
   const nowSec = Math.floor(Date.now() / 1000);
   const fourteenDaysAgoSec = nowSec - (14 * 24 * 60 * 60);
@@ -64,41 +64,48 @@ async function runBackgroundMarketScan() {
       // 1. Fetch Quote
       const quoteResp = await fetch(`https://finnhub.io/api/v1/quote?symbol=${item.symbol}&token=${FINNHUB_API_KEY}`);
       if (!quoteResp.ok) {
-        console.warn(`[Scanner] Rate limit hit (429) on ${item.symbol}. Backing off...`);
-        // If we hit a 429, pause an extra 5 seconds to clear the rate limit window
         if (quoteResp.status === 429) {
+          console.warn(`[Scanner] Rate limit hit (429). Pausing...`);
           await new Promise(r => setTimeout(r, 5000));
         }
-        await new Promise(r => setTimeout(r, 2000));
+        await new Promise(r => setTimeout(r, 1800));
         continue;
       }
       const quote = await quoteResp.json();
 
       if (quote && quote.c && quote.c > 0 && quote.pc > 0) {
         const currentPrice = quote.c;
+        const prevClose = quote.pc;
 
-        // 2. Fetch Candles
+        // Calculate basic intraday / overnight change first
+        let dropPct = (((currentPrice - prevClose) / prevClose) * 100);
+        let timeframeText = "1 day (vs prev close)";
+
+        // 2. Fetch Candles for multi-day peak check
         const candleResp = await fetch(`https://finnhub.io/api/v1/stock/candle?symbol=${item.symbol}&resolution=D&from=${fourteenDaysAgoSec}&to=${nowSec}&token=${FINNHUB_API_KEY}`);
         const candleData = await candleResp.json();
 
-        let dropPct = (((currentPrice - quote.pc) / quote.pc) * 100);
-        let timeframeText = "1 day";
+        if (candleData && candleData.s === 'ok' && Array.isArray(candleData.h) && candleData.h.length > 0) {
+          const highs = candleData.h;
+          const maxPrice = Math.max(...highs);
+          const maxIndex = highs.indexOf(maxPrice);
+          const daysAgo = highs.length - 1 - maxIndex;
 
-        if (candleData && candleData.s === 'ok' && Array.isArray(candleData.c) && candleData.c.length > 1) {
-          const closes = candleData.c;
-          const maxPrice = Math.max(...closes);
-          const maxIndex = closes.indexOf(maxPrice);
-          const daysAgo = closes.length - 1 - maxIndex;
-
-          if (maxPrice > currentPrice) {
-            dropPct = (((currentPrice - maxPrice) / maxPrice) * 100);
-            timeframeText = daysAgo > 0 ? `${daysAgo} day${daysAgo > 1 ? 's' : ''}` : "recent session";
+          const multiDayDrop = (((currentPrice - maxPrice) / maxPrice) * 100);
+          
+          // Use the more severe drop between intraday and multi-day high pullback
+          if (multiDayDrop < dropPct) {
+            dropPct = multiDayDrop;
+            timeframeText = daysAgo > 0 ? `${daysAgo} day peak pullback` : "recent session high pullback";
           }
         }
 
+        // DEBUG LOG: Print every calculated drop so we can see values in Render logs
+        console.log(`[Debug] ${item.symbol}: Current=$${currentPrice}, Drop=${dropPct.toFixed(2)}%`);
+
         // Check Setback Condition (Drop >= 2.0%)
         if (dropPct <= -2.0) {
-          console.log(`[Scanner] Setback detected on ${item.symbol}: ${dropPct.toFixed(1)}%`);
+          console.log(`>>> [MATCH FOUND] ${item.symbol} dropped ${dropPct.toFixed(2)}%!`);
           let headline = "Market pullback near key technical support level.";
           let newsUrl = `https://finviz.com/quote.ashx?t=${item.symbol}`;
           let summary = "Technical retracement following broader sector volatility with stable fundamental backdrop.";
@@ -137,7 +144,7 @@ async function runBackgroundMarketScan() {
         }
       }
       
-      // Safe 1.8 second pause per stock to stay well under Finnhub's 60 req/min limit
+      // 1.8 second pause per stock
       await new Promise(r => setTimeout(r, 1800));
     } catch (err) {
       console.error(`[Scanner] Error processing ${item.symbol}:`, err.message);
