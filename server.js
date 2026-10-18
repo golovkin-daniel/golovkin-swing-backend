@@ -2,35 +2,14 @@ const express = require('express');
 const cors = require('cors');
 const fetch = require('node-fetch');
 
+// Import external watchlist file
+const MASTER_US_WATCHLIST = require('./watchlist.json');
+
 const app = express();
 app.use(cors());
 app.use(express.json());
 
 const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY || "dbai6bhr01qo2u5dvbr0dbai6bhr01qo2u5dvbrg";
-
-const MASTER_US_WATCHLIST = [
-  { symbol: "AAPL", name: "Apple Inc.", healthScore: 9.5 },
-  { symbol: "MSFT", name: "Microsoft Corp.", healthScore: 9.6 },
-  { symbol: "NVDA", name: "NVIDIA Corp.", healthScore: 9.2 },
-  { symbol: "AMZN", name: "Amazon.com Inc.", healthScore: 9.1 },
-  { symbol: "GOOGL", name: "Alphabet Inc.", healthScore: 9.4 },
-  { symbol: "META", name: "Meta Platforms", healthScore: 8.9 },
-  { symbol: "TSLA", name: "Tesla Inc.", healthScore: 8.4 },
-  { symbol: "AVGO", name: "Broadcom Inc.", healthScore: 9.0 },
-  { symbol: "AMD", name: "Advanced Micro Devices", healthScore: 8.6 },
-  { symbol: "NFLX", name: "Netflix Inc.", healthScore: 8.7 },
-  { symbol: "JPM", name: "JPMorgan Chase", healthScore: 9.3 },
-  { symbol: "V", name: "Visa Inc.", healthScore: 9.5 },
-  { symbol: "MA", name: "Mastercard Inc.", healthScore: 9.4 },
-  { symbol: "LLY", name: "Eli Lilly & Co.", healthScore: 9.1 },
-  { symbol: "UNH", name: "UnitedHealth Group", healthScore: 9.3 },
-  { symbol: "JNJ", name: "Johnson & Johnson", healthScore: 9.6 },
-  { symbol: "HD", name: "Home Depot", healthScore: 9.0 },
-  { symbol: "COST", name: "Costco Wholesale", healthScore: 9.2 },
-  { symbol: "WMT", name: "Walmart Inc.", healthScore: 9.4 },
-  { symbol: "SPY", name: "SPDR S&P 500 ETF", healthScore: 9.9 },
-  { symbol: "QQQ", name: "Invesco QQQ Trust", healthScore: 9.8 }
-];
 
 let cachedCandidates = [];
 let lastScanTimestamp = null;
@@ -42,12 +21,10 @@ function getMarketStatus() {
   const utcDay = now.getUTCDay(); // 0 = Sun, 6 = Sat
   if (utcDay === 0 || utcDay === 6) return { isOpen: false, text: "Closed (Weekend)" };
 
-  // Convert to US Eastern Time approximation
-  const hoursET = (now.getUTCHour - 5 + 24) % 24;
+  const hoursET = (now.getUTCHours() - 5 + 24) % 24;
   const minsET = now.getUTCMinutes();
   const timeVal = hoursET * 60 + minsET;
 
-  // 9:30 AM = 570 mins, 4:00 PM = 960 mins
   if (timeVal >= 570 && timeVal <= 960) {
     return { isOpen: true, text: "Open (Live)" };
   }
@@ -58,6 +35,7 @@ async function runBackgroundMarketScan() {
   if (isScanRunning) return;
   isScanRunning = true;
 
+  console.log(`Starting background scan across ${MASTER_US_WATCHLIST.length} instruments from watchlist.json...`);
   const detectedSetbacks = [];
   const nowSec = Math.floor(Date.now() / 1000);
   const fourteenDaysAgoSec = nowSec - (14 * 24 * 60 * 60);
@@ -124,7 +102,7 @@ async function runBackgroundMarketScan() {
           });
         }
       }
-      await new Promise(r => setTimeout(r, 1200));
+      await new Promise(r => setTimeout(r, 1200)); // 1.2s delay to protect rate limits
     } catch (err) {
       console.error(`Error scanning ${item.symbol}:`, err.message);
     }
@@ -134,9 +112,11 @@ async function runBackgroundMarketScan() {
   lastScanTimestamp = new Date();
   isScanRunning = false;
 
+  console.log(`Scan cycle finished. Found ${cachedCandidates.length} dip setups.`);
   setTimeout(runBackgroundMarketScan, 180000); // Re-scan every 3 minutes
 }
 
+// Start background loop
 runBackgroundMarketScan();
 
 app.get('/api/quote', async (req, res) => {
