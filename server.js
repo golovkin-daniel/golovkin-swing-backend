@@ -21,14 +21,19 @@ function getStoredEquity() {
       const parsed = JSON.parse(data);
       if (parsed && parsed.equity) return parseFloat(parsed.equity);
     }
-  } catch (e) {}
+  } catch (e) {
+    console.error("Error reading equity.json:", e);
+  }
   return 10000;
 }
 
 function saveStoredEquity(val) {
   try {
     fs.writeFileSync(EQUITY_FILE, JSON.stringify({ equity: val }, null, 2));
-  } catch (e) {}
+    console.log(`[Settings] Equity updated and saved to disk: $${val}`);
+  } catch (e) {
+    console.error("Error writing equity.json:", e);
+  }
 }
 
 let cachedCandidates = [
@@ -144,8 +149,6 @@ async function runBackgroundMarketScan() {
           };
 
           detectedSetbacks.push(candidate);
-
-          // INCREMENTAL UPDATE: Push candidates to live cache immediately as they are discovered!
           cachedCandidates = [...detectedSetbacks].sort((a, b) => parseFloat(a.dropPct) - parseFloat(b.dropPct));
         }
       }
