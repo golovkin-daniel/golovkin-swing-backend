@@ -198,12 +198,14 @@ app.get('/api/settings', (req, res) => {
 });
 
 app.post('/api/settings', (req, res) => {
-  const { equity } = req.body;
-  if (equity && !isNaN(equity) && equity > 0) {
+  console.log("[Settings] Received POST request body:", req.body);
+  const equity = req.body.equity;
+  if (equity !== undefined && !isNaN(equity) && Number(equity) > 0) {
     const val = parseFloat(equity);
     saveStoredEquity(val);
     return res.json({ success: true, settings: { equity: val } });
   }
+  console.warn("[Settings] Rejected invalid equity value:", req.body);
   return res.status(400).json({ success: false, error: "Invalid equity value" });
 });
 
