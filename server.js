@@ -8,78 +8,68 @@ app.use(express.json());
 
 const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY || "dbai6bhr01qo2u5dvbr0dbai6bhr01qo2u5dvbrg";
 
-// Master List: S&P 500 + Nasdaq 100 + Major US Growth Stocks (Expanded)
 const MASTER_US_WATCHLIST = [
-  // Tech & Semiconductors
-  { symbol: "AAPL", name: "Apple Inc." }, { symbol: "MSFT", name: "Microsoft Corp." }, { symbol: "NVDA", name: "NVIDIA Corp." },
-  { symbol: "AMZN", name: "Amazon.com Inc." }, { symbol: "GOOGL", name: "Alphabet Inc." }, { symbol: "META", name: "Meta Platforms" },
-  { symbol: "TSLA", name: "Tesla Inc." }, { symbol: "AVGO", name: "Broadcom Inc." }, { symbol: "AMD", name: "Advanced Micro Devices" },
-  { symbol: "ORCL", name: "Oracle Corp." }, { symbol: "CRM", name: "Salesforce Inc." }, { symbol: "INTC", name: "Intel Corp." },
-  { symbol: "QCOM", name: "Qualcomm Inc." }, { symbol: "TXN", name: "Texas Instruments" }, { symbol: "AMAT", name: "Applied Materials" },
-  { symbol: "MU", name: "Micron Technology" }, { symbol: "LRCX", name: "Lam Research" }, { symbol: "PANW", name: "Palo Alto Networks" },
-  { symbol: "SNPS", name: "Synopsys Inc." }, { symbol: "CDNS", name: "Cadence Design Systems" }, { symbol: "KLAC", name: "KLA Corp." },
-  { symbol: "ADI", name: "Analog Devices" }, { symbol: "MDB", name: "MongoDB Inc." }, { symbol: "NOW", name: "ServiceNow Inc." },
-  { symbol: "PLTR", name: "Palantir Technologies" }, { symbol: "CRWD", name: "CrowdStrike Holdings" }, { symbol: "NET", name: "Cloudflare Inc." },
-  { symbol: "DDOG", name: "Datadog Inc." }, { symbol: "SNOW", name: "Snowflake Inc." }, { symbol: "TEAM", name: "Atlassian Corp." },
-  
-  // Finance & Banking
-  { symbol: "JPM", name: "JPMorgan Chase" }, { symbol: "BAC", name: "Bank of America" }, { symbol: "WFC", name: "Wells Fargo" },
-  { symbol: "C", name: "Citigroup Inc." }, { symbol: "GS", name: "Goldman Sachs" }, { symbol: "MS", name: "Morgan Stanley" },
-  { symbol: "V", name: "Visa Inc." }, { symbol: "MA", name: "Mastercard Inc." }, { symbol: "AXP", name: "American Express" },
-  { symbol: "BLK", name: "BlackRock Inc." }, { symbol: "PYPL", name: "PayPal Holdings" }, { symbol: "SQ", name: "Block Inc." },
-  
-  // Healthcare & Biotech
-  { symbol: "LLY", name: "Eli Lilly & Co." }, { symbol: "UNH", name: "UnitedHealth Group" }, { symbol: "JNJ", name: "Johnson & Johnson" },
-  { symbol: "ABBV", name: "AbbVie Inc." }, { symbol: "MRK", name: "Merck & Co." }, { symbol: "PFE", name: "Pfizer Inc." },
-  { symbol: "TMO", name: "Thermo Fisher Scientific" }, { symbol: "ABT", name: "Abbott Laboratories" }, { symbol: "DHR", name: "Danaher Corp." },
-  { symbol: "AMGN", name: "Amgen Inc." }, { symbol: "GILD", name: "Gilead Sciences" }, { symbol: "ISRG", name: "Intuitive Surgical" },
-  { symbol: "VRTX", name: "Vertex Pharmaceuticals" }, { symbol: "REGN", name: "Regeneron Pharma" }, { symbol: "BMY", name: "Bristol-Myers Squibb" },
-
-  // Consumer Discretionary & Retail
-  { symbol: "HD", name: "Home Depot" }, { symbol: "COST", name: "Costco Wholesale" }, { symbol: "WMT", name: "Walmart Inc." },
-  { symbol: "TGT", name: "Target Corp." }, { symbol: "LOW", name: "Lowe's Companies" }, { symbol: "NKE", name: "Nike Inc." },
-  { symbol: "SBUX", name: "Starbucks Corp." }, { symbol: "MCD", name: "McDonald's Corp." }, { symbol: "BKNG", name: "Booking Holdings" },
-  { symbol: "ABNB", name: "Airbnb Inc." }, { symbol: "MAR", name: "Marriott International" }, { symbol: "CMG", name: "Chipotle Mexican Grill" },
-
-  // Communication & Media
-  { symbol: "NFLX", name: "Netflix Inc." }, { symbol: "DIS", name: "Walt Disney Co." }, { symbol: "CMCSA", name: "Comcast Corp." },
-  { symbol: "TMUS", name: "T-Mobile US" }, { symbol: "VZ", name: "Verizon Communications" }, { symbol: "T", name: "AT&T Inc." },
-
-  // Industrial & Aerospace
-  { symbol: "CAT", name: "Caterpillar Inc." }, { symbol: "GE", name: "GE Aerospace" }, { symbol: "BA", name: "Boeing Co." },
-  { symbol: "HON", name: "Honeywell International" }, { symbol: "UNP", name: "Union Pacific" }, { symbol: "LMT", name: "Lockheed Martin" },
-  { symbol: "RTX", name: "RTX Corp." }, { symbol: "DE", name: "Deere & Co." }, { symbol: "UPS", name: "United Parcel Service" },
-
-  // Major Index ETFs
-  { symbol: "SPY", name: "SPDR S&P 500 ETF" }, { symbol: "QQQ", name: "Invesco QQQ Trust" }, { symbol: "IWM", name: "iShares Russell 2000" },
-  { symbol: "DIA", name: "SPDR Dow Jones ETF" }, { symbol: "SMH", name: "VanEck Semiconductor ETF" }, { symbol: "XLF", name: "Financial Select Sector SPDR" }
+  { symbol: "AAPL", name: "Apple Inc.", healthScore: 9.5 },
+  { symbol: "MSFT", name: "Microsoft Corp.", healthScore: 9.6 },
+  { symbol: "NVDA", name: "NVIDIA Corp.", healthScore: 9.2 },
+  { symbol: "AMZN", name: "Amazon.com Inc.", healthScore: 9.1 },
+  { symbol: "GOOGL", name: "Alphabet Inc.", healthScore: 9.4 },
+  { symbol: "META", name: "Meta Platforms", healthScore: 8.9 },
+  { symbol: "TSLA", name: "Tesla Inc.", healthScore: 8.4 },
+  { symbol: "AVGO", name: "Broadcom Inc.", healthScore: 9.0 },
+  { symbol: "AMD", name: "Advanced Micro Devices", healthScore: 8.6 },
+  { symbol: "NFLX", name: "Netflix Inc.", healthScore: 8.7 },
+  { symbol: "JPM", name: "JPMorgan Chase", healthScore: 9.3 },
+  { symbol: "V", name: "Visa Inc.", healthScore: 9.5 },
+  { symbol: "MA", name: "Mastercard Inc.", healthScore: 9.4 },
+  { symbol: "LLY", name: "Eli Lilly & Co.", healthScore: 9.1 },
+  { symbol: "UNH", name: "UnitedHealth Group", healthScore: 9.3 },
+  { symbol: "JNJ", name: "Johnson & Johnson", healthScore: 9.6 },
+  { symbol: "HD", name: "Home Depot", healthScore: 9.0 },
+  { symbol: "COST", name: "Costco Wholesale", healthScore: 9.2 },
+  { symbol: "WMT", name: "Walmart Inc.", healthScore: 9.4 },
+  { symbol: "SPY", name: "SPDR S&P 500 ETF", healthScore: 9.9 },
+  { symbol: "QQQ", name: "Invesco QQQ Trust", healthScore: 9.8 }
 ];
 
-// Server Memory Cache
 let cachedCandidates = [];
 let lastScanTimestamp = null;
 let isScanRunning = false;
 
-// Background Scan Engine (Runs continuously in background)
+// Helper: Check if US Stock Market is Open (NYSE/NASDAQ: 9:30 AM - 4:00 PM ET, Mon-Fri)
+function getMarketStatus() {
+  const now = new Date();
+  const utcDay = now.getUTCDay(); // 0 = Sun, 6 = Sat
+  if (utcDay === 0 || utcDay === 6) return { isOpen: false, text: "Closed (Weekend)" };
+
+  // Convert to US Eastern Time approximation
+  const hoursET = (now.getUTCHour - 5 + 24) % 24;
+  const minsET = now.getUTCMinutes();
+  const timeVal = hoursET * 60 + minsET;
+
+  // 9:30 AM = 570 mins, 4:00 PM = 960 mins
+  if (timeVal >= 570 && timeVal <= 960) {
+    return { isOpen: true, text: "Open (Live)" };
+  }
+  return { isOpen: false, text: "Closed (After Hours)" };
+}
+
 async function runBackgroundMarketScan() {
   if (isScanRunning) return;
   isScanRunning = true;
 
-  console.log(`Starting continuous market scan across ${MASTER_US_WATCHLIST.length} US large-caps...`);
   const detectedSetbacks = [];
   const nowSec = Math.floor(Date.now() / 1000);
   const fourteenDaysAgoSec = nowSec - (14 * 24 * 60 * 60);
 
   for (let item of MASTER_US_WATCHLIST) {
     try {
-      // 1. Fetch live quote
       const quoteResp = await fetch(`https://finnhub.io/api/v1/quote?symbol=${item.symbol}&token=${FINNHUB_API_KEY}`);
       const quote = await quoteResp.json();
 
       if (quote && quote.c && quote.c > 0) {
         const currentPrice = quote.c;
 
-        // 2. Fetch daily candles to calculate peak drop %
         const candleResp = await fetch(`https://finnhub.io/api/v1/stock/candle?symbol=${item.symbol}&resolution=D&from=${fourteenDaysAgoSec}&to=${nowSec}&token=${FINNHUB_API_KEY}`);
         const candleData = await candleResp.json();
 
@@ -98,59 +88,57 @@ async function runBackgroundMarketScan() {
           }
         }
 
-        // Filter: Detect setups that dropped 2.5% or more from recent highs (temporary setback condition)
-        if (dropPct <= -2.5) {
-          // 3. Fetch headline news catalyst
+        // Capture dips >= 2.0%
+        if (dropPct <= -2.0) {
           const todayStr = new Date().toISOString().split('T')[0];
           const lastWeekStr = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
           const newsResp = await fetch(`https://finnhub.io/api/v1/company-news?symbol=${item.symbol}&from=${lastWeekStr}&to=${todayStr}&token=${FINNHUB_API_KEY}`);
           const news = await newsResp.json();
 
-          let dropReason = "Market pullback near key technical support level.";
+          let headline = "Market pullback near key technical support level.";
+          let newsUrl = `https://finviz.com/quote.ashx?t=${item.symbol}`;
+          let summary = "Technical retracement following broader sector volatility with stable fundamental backdrop.";
+
           if (Array.isArray(news) && news.length > 0) {
-            dropReason = `Headline: "${news[0].headline?.substring(0, 85)}..."`;
+            headline = news[0].headline || headline;
+            newsUrl = news[0].url || newsUrl;
+            summary = news[0].summary || summary;
           }
 
-          const estimatedStop = currentPrice * 0.97; // Default 3% stop loss
-          const estimatedTarget = currentPrice + ((currentPrice - estimatedStop) * 2); // 1:2 Risk/Reward
+          const estimatedStop = currentPrice * 0.97;
+          const estimatedTarget = currentPrice + ((currentPrice - estimatedStop) * 2);
 
           detectedSetbacks.push({
             ticker: item.symbol,
             name: item.name,
+            healthScore: item.healthScore,
             currentPrice,
             dropPct: dropPct.toFixed(1),
             timeframeText,
-            dropReason,
+            headline,
+            newsUrl,
+            summary,
             entry: currentPrice,
             stop: estimatedStop,
             target: estimatedTarget
           });
         }
       }
-
-      // Pause 1200ms (1.2 sec) between symbols to stay safely under 60 calls/minute limit
       await new Promise(r => setTimeout(r, 1200));
-
     } catch (err) {
       console.error(`Error scanning ${item.symbol}:`, err.message);
     }
   }
 
-  // Update Server Memory Cache
   cachedCandidates = detectedSetbacks.sort((a, b) => parseFloat(a.dropPct) - parseFloat(b.dropPct));
   lastScanTimestamp = new Date();
   isScanRunning = false;
 
-  console.log(`Scan complete! Found ${cachedCandidates.length} active setback setups. Next cycle starting shortly...`);
-  
-  // Re-run scan continuously after a 2-minute pause
-  setTimeout(runBackgroundMarketScan, 120000);
+  setTimeout(runBackgroundMarketScan, 180000); // Re-scan every 3 minutes
 }
 
-// Kick off background scanner when server starts
 runBackgroundMarketScan();
 
-// API Endpoint 1: Single Live Quote
 app.get('/api/quote', async (req, res) => {
   const symbol = (req.query.symbol || 'AAPL').toUpperCase();
   try {
@@ -165,10 +153,10 @@ app.get('/api/quote', async (req, res) => {
   }
 });
 
-// API Endpoint 2: Instant Cached Setbacks Response
 app.get('/api/setbacks', (req, res) => {
   res.json({
     success: true,
+    marketStatus: getMarketStatus(),
     lastScan: lastScanTimestamp,
     totalScanned: MASTER_US_WATCHLIST.length,
     count: cachedCandidates.length,
