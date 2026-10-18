@@ -1,0 +1,125 @@
+[
+// ==========================================
+// 1. Tech, Software & Cloud
+// ==========================================
+{ symbol: "AAPL", name: "Apple Inc." }, { symbol: "MSFT", name: "Microsoft Corp." }, { symbol: "NVDA", name: "NVIDIA Corp." },
+{ symbol: "AMZN", name: "Amazon.com Inc." }, { symbol: "GOOGL", name: "Alphabet Inc." }, { symbol: "META", name: "Meta Platforms Inc." },
+{ symbol: "ORCL", name: "Oracle Corp." }, { symbol: "CRM", name: "Salesforce Inc." }, { symbol: "ADBE", name: "Adobe Inc." },
+{ symbol: "CSCO", name: "Cisco Systems Inc." }, { symbol: "IBM", name: "International Business Machines" }, { symbol: "ACN", name: "Accenture plc" },
+{ symbol: "NOW", name: "ServiceNow Inc." }, { symbol: "PLTR", name: "Palantir Technologies" }, { symbol: "INTU", name: "Intuit Inc." },
+{ symbol: "PANW", name: "Palo Alto Networks" }, { symbol: "CRWD", name: "CrowdStrike Holdings" }, { symbol: "NET", name: "Cloudflare Inc." },
+{ symbol: "DDOG", name: "Datadog Inc." }, { symbol: "SNOW", name: "Snowflake Inc." }, { symbol: "TEAM", name: "Atlassian Corp." },
+{ symbol: "FTNT", name: "Fortinet Inc." }, { symbol: "MDB", name: "MongoDB Inc." }, { symbol: "ADSK", name: "Autodesk Inc." },
+{ symbol: "WDAY", name: "Workday Inc." }, { symbol: "ROP", name: "Roper Technologies" }, { symbol: "APP", name: "AppLovin Corp." },
+{ symbol: "HUBS", name: "HubSpot Inc." }, { symbol: "ZS", name: "Zscaler Inc." }, { symbol: "ANET", name: "Arista Networks" },
+
+// ==========================================
+// 2. Semiconductors & Equipment
+// ==========================================
+{ symbol: "AVGO", name: "Broadcom Inc." }, { symbol: "AMD", name: "Advanced Micro Devices" }, { symbol: "TSM", name: "Taiwan Semiconductor Mfg" },
+{ symbol: "QCOM", name: "Qualcomm Inc." }, { symbol: "TXN", name: "Texas Instruments" }, { symbol: "AMAT", name: "Applied Materials" },
+{ symbol: "MU", name: "Micron Technology" }, { symbol: "LRCX", name: "Lam Research" }, { symbol: "KLAC", name: "KLA Corp." },
+{ symbol: "ADI", name: "Analog Devices" }, { symbol: "MRVL", name: "Marvell Technology" }, { symbol: "INTC", name: "Intel Corp." },
+{ symbol: "NXPI", name: "NXP Semiconductors" }, { symbol: "MCHP", name: "Microchip Technology" }, { symbol: "ON", name: "ON Semiconductor" },
+{ symbol: "MPWR", name: "Monolithic Power Systems" }, { symbol: "ASML", name: "ASML Holding NV" }, { symbol: "ARM", name: "Arm Holdings plc" },
+{ symbol: "SNPS", name: "Synopsys Inc." }, { symbol: "CDNS", name: "Cadence Design Systems" },
+
+// ==========================================
+// 3. Finance, Banking & Payments
+// ==========================================
+{ symbol: "JPM", name: "JPMorgan Chase & Co." }, { symbol: "BAC", name: "Bank of America" }, { symbol: "WFC", name: "Wells Fargo & Co." },
+{ symbol: "C", name: "Citigroup Inc." }, { symbol: "GS", name: "Goldman Sachs Group" }, { symbol: "MS", name: "Morgan Stanley" },
+{ symbol: "V", name: "Visa Inc." }, { symbol: "MA", name: "Mastercard Inc." }, { symbol: "AXP", name: "American Express" },
+{ symbol: "BLK", name: "BlackRock Inc." }, { symbol: "PYPL", name: "PayPal Holdings" }, { symbol: "SQ", name: "Block Inc." },
+{ symbol: "SCHW", name: "Charles Schwab Corp." }, { symbol: "BRK.B", name: "Berkshire Hathaway Inc." }, { symbol: "KKR", name: "KKR & Co. Inc." },
+{ symbol: "APO", name: "Apollo Global Management" }, { symbol: "ARES", name: "Ares Management" }, { symbol: "BX", name: "Blackstone Inc." },
+{ symbol: "SPGI", name: "S&P Global Inc." }, { symbol: "MCO", name: "Moody's Corp." }, { symbol: "CME", name: "CME Group Inc." },
+{ symbol: "ICE", name: "Intercontinental Exchange" }, { symbol: "PGR", name: "Progressive Corp." }, { symbol: "CB", name: "Chubb Ltd." },
+
+// ==========================================
+// 4. Healthcare, Pharma & Biotech
+// ==========================================
+{ symbol: "LLY", name: "Eli Lilly & Co." }, { symbol: "UNH", name: "UnitedHealth Group" }, { symbol: "JNJ", name: "Johnson & Johnson" },
+{ symbol: "ABBV", name: "AbbVie Inc." }, { symbol: "MRK", name: "Merck & Co." }, { symbol: "PFE", name: "Pfizer Inc." },
+{ symbol: "TMO", name: "Thermo Fisher Scientific" }, { symbol: "ABT", name: "Abbott Laboratories" }, { symbol: "DHR", name: "Danaher Corp." },
+{ symbol: "AMGN", name: "Amgen Inc." }, { symbol: "GILD", name: "Gilead Sciences" }, { symbol: "ISRG", name: "Intuitive Surgical" },
+{ symbol: "VRTX", name: "Vertex Pharmaceuticals" }, { symbol: "REGN", name: "Regeneron Pharmaceuticals" }, { symbol: "BMY", name: "Bristol-Myers Squibb" },
+{ symbol: "MDT", name: "Medtronic plc" }, { symbol: "SYK", name: "Stryker Corp." }, { symbol: "BSX", name: "Boston Scientific" },
+{ symbol: "ELV", name: "Elevance Health" }, { symbol: "CI", name: "Cigna Group" }, { symbol: "MRNA", name: "Moderna Inc." },
+{ symbol: "DXCM", name: "DexCom Inc." }, { symbol: "ALNY", name: "Alnylam Pharmaceuticals" }, { symbol: "COR", name: "Cencora Inc." },
+
+// ==========================================
+// 5. Consumer Discretionary & Retail
+// ==========================================
+{ symbol: "TSLA", name: "Tesla Inc." }, { symbol: "HD", name: "Home Depot Inc." }, { symbol: "COST", name: "Costco Wholesale" },
+{ symbol: "WMT", name: "Walmart Inc." }, { symbol: "TGT", name: "Target Corp." }, { symbol: "LOW", name: "Lowe's Companies" },
+{ symbol: "NKE", name: "Nike Inc." }, { symbol: "SBUX", name: "Starbucks Corp." }, { symbol: "MCD", name: "McDonald's Corp." },
+{ symbol: "BKNG", name: "Booking Holdings" }, { symbol: "ABNB", name: "Airbnb Inc." }, { symbol: "MAR", name: "Marriott International" },
+{ symbol: "CMG", name: "Chipotle Mexican Grill" }, { symbol: "ORLY", name: "O'Reilly Automotive" }, { symbol: "AZO", name: "AutoZone Inc." },
+{ symbol: "ROST", name: "Ross Stores Inc." }, { symbol: "TJX", name: "TJX Companies Inc." }, { symbol: "DASH", name: "DoorDash Inc." },
+{ symbol: "LULU", name: "Lululemon Athletica" }, { symbol: "YUM", name: "Yum! Brands Inc." }, { symbol: "RACE", name: "Ferrari NV" },
+
+// ==========================================
+// 6. Consumer Staples & Food
+// ==========================================
+{ symbol: "PG", name: "Procter & Gamble Co." }, { symbol: "KO", name: "Coca-Cola Co." }, { symbol: "PEP", name: "PepsiCo Inc." },
+{ symbol: "PM", name: "Philip Morris International" }, { symbol: "MO", name: "Altria Group Inc." }, { symbol: "MDLZ", name: "Mondelez International" },
+{ symbol: "CL", name: "Colgate-Palmolive Co." }, { symbol: "KMB", name: "Kimberly-Clark Corp." }, { symbol: "GIS", name: "General Mills Inc." },
+{ symbol: "HSY", name: "Hershey Co." }, { symbol: "MNST", name: "Monster Beverage Corp." }, { symbol: "KDP", name: "Keurig Dr Pepper" },
+{ symbol: "STZ", name: "Constellation Brands" }, { symbol: "ADM", name: "Archer-Daniels-Midland" }, { symbol: "SYY", name: "Sysco Corp." },
+
+// ==========================================
+// 7. Communication & Media
+// ==========================================
+{ symbol: "NFLX", name: "Netflix Inc." }, { symbol: "DIS", name: "Walt Disney Co." }, { symbol: "CMCSA", name: "Comcast Corp." },
+{ symbol: "TMUS", name: "T-Mobile US Inc." }, { symbol: "VZ", name: "Verizon Communications" }, { symbol: "T", name: "AT&T Inc." },
+{ symbol: "CHTR", name: "Charter Communications" }, { symbol: "EA", name: "Electronic Arts Inc." }, { symbol: "TTWO", name: "Take-Two Interactive" },
+{ symbol: "OMC", name: "Omnicom Group Inc." }, { symbol: "IPG", name: "Interpublic Group" }, { symbol: "LYV", name: "Live Nation Entertainment" },
+
+// ==========================================
+// 8. Industrials, Defense & Logistics
+// ==========================================
+{ symbol: "CAT", name: "Caterpillar Inc." }, { symbol: "GE", name: "GE Aerospace" }, { symbol: "GEV", name: "GE Vernova Inc." },
+{ symbol: "BA", name: "Boeing Co." }, { symbol: "HON", name: "Honeywell International" }, { symbol: "UNP", name: "Union Pacific Corp." },
+{ symbol: "LMT", name: "Lockheed Martin Corp." }, { symbol: "RTX", name: "RTX Corp." }, { symbol: "DE", name: "Deere & Co." },
+{ symbol: "UPS", name: "United Parcel Service" }, { symbol: "FDX", name: "FedEx Corp." }, { symbol: "ADP", name: "Automatic Data Processing" },
+{ symbol: "AXON", name: "Axon Enterprise Inc." }, { symbol: "NOC", name: "Northrop Grumman Corp." }, { symbol: "GD", name: "General Dynamics Corp." },
+{ symbol: "CSX", name: "CSX Corp." }, { symbol: "NSC", name: "Norfolk Southern Corp." }, { symbol: "ETN", name: "Eaton Corp. plc" },
+{ symbol: "EMR", name: "Emerson Electric Co." }, { symbol: "PH", name: "Parker-Hannifin Corp." }, { symbol: "CTAS", name: "Cintas Corp." },
+
+// ==========================================
+// 9. Energy & Utilities
+// ==========================================
+{ symbol: "XOM", name: "ExxonMobil Corp." }, { symbol: "CVX", name: "Chevron Corp." }, { symbol: "COP", name: "ConocoPhillips" },
+{ symbol: "SLB", name: "Schlumberger Ltd." }, { symbol: "EOG", name: "EOG Resources Inc." }, { symbol: "MPC", name: "Marathon Petroleum" },
+{ symbol: "PSX", name: "Phillips 66" }, { symbol: "VLO", name: "Valero Energy Corp." }, { symbol: "OXY", name: "Occidental Petroleum" },
+{ symbol: "WMB", name: "Williams Companies" }, { symbol: "KMI", name: "Kinder Morgan Inc." }, { symbol: "HAL", name: "Halliburton Co." },
+{ symbol: "BKR", name: "Baker Hughes Co." }, { symbol: "CEG", name: "Constellation Energy" }, { symbol: "NEE", name: "NextEra Energy Inc." },
+{ symbol: "SO", name: "Southern Co." }, { symbol: "DUK", name: "Duke Energy Corp." }, { symbol: "AEP", name: "American Electric Power" },
+{ symbol: "SRE", name: "Sempra" }, { symbol: "EXC", name: "Exelon Corp." },
+
+// ==========================================
+// 10. Real Estate & REITs
+// ==========================================
+{ symbol: "PLD", name: "Prologis Inc." }, { symbol: "AMT", name: "American Tower Corp." }, { symbol: "EQIX", name: "Equinix Inc." },
+{ symbol: "WELL", name: "Welltower Inc." }, { symbol: "CCI", name: "Crown Castle Inc." }, { symbol: "O", name: "Realty Income Corp." },
+{ symbol: "PSA", name: "Public Storage" }, { symbol: "SPG", name: "Simon Property Group" }, { symbol: "DLR", name: "Digital Realty Trust" },
+{ symbol: "VICI", name: "VICI Properties Inc." }, { symbol: "AVB", name: "AvalonBay Communities" }, { symbol: "EQR", name: "Equity Residential" },
+
+// ==========================================
+// 11. Basic Materials & Chemicals
+// ==========================================
+{ symbol: "LIN", name: "Linde plc" }, { symbol: "APD", name: "Air Products & Chemicals" }, { symbol: "SHW", name: "Sherwin-Williams Co." },
+{ symbol: "FCX", name: "Freeport-McMoRan Inc." }, { symbol: "NMC", name: "Newmont Corp." }, { symbol: "ECL", name: "Ecolab Inc." },
+{ symbol: "DOW", name: "Dow Inc." }, { symbol: "DD", name: "DuPont de Nemours" }, { symbol: "NUE", name: "Nucor Corp." },
+{ symbol: "MLM", name: "Martin Marietta Materials" }, { symbol: "VMC", name: "Vulcan Materials Co." },
+
+// ==========================================
+// 12. Major Index & Sector ETFs
+// ==========================================
+{ symbol: "SPY", name: "SPDR S&P 500 ETF" }, { symbol: "VOO", name: "Vanguard S&P 500 ETF" }, { symbol: "IVV", name: "iShares Core S&P 500" },
+{ symbol: "QQQ", name: "Invesco QQQ Trust" }, { symbol: "IWM", name: "iShares Russell 2000" }, { symbol: "DIA", name: "SPDR Dow Jones ETF" },
+{ symbol: "VTI", name: "Vanguard Total Stock Market" }, { symbol: "SMH", name: "VanEck Semiconductor ETF" }, { symbol: "XLF", name: "Financial Select Sector SPDR" },
+{ symbol: "XLK", name: "Technology Select Sector SPDR" }, { symbol: "XLV", name: "Health Care Select Sector SPDR" }, { symbol: "XLE", name: "Energy Select Sector SPDR" },
+{ symbol: "XLI", name: "Industrial Select Sector SPDR" }, { symbol: "XLP", name: "Consumer Staples Select SPDR" }, { symbol: "XLY", name: "Consumer Discretionary SPDR" }
+]
