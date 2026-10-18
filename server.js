@@ -23,35 +23,54 @@ function getMarketStatus() {
   const utcDay = now.getUTCDay();
   if (utcDay === 0 || utcDay === 6) return { isOpen: false, text: "Closed (Weekend)" };
 
-  const hoursET = (now.getUTCDays ? now.getUTCHours() : 0) - 5; // Simplified ET approx
-  const minsET = now.getUTCMinutes();
-  const timeVal = ((now.getUTCHours() - 5 + 24) % 24) * 60 + minsET;
-
+  const timeVal = ((now.getUTCHours() - 5 + 24) % 24) * 60 + now.getUTCMinutes();
   if (timeVal >= 570 && timeVal <= 960) {
     return { isOpen: true, text: "Open (Live)" };
   }
   return { isOpen: false, text: "Closed (After Hours)" };
 }
 
+// Helper: Process an array in concurrent chunks to speed up scanning
+async function asyncPool(poolLimit, array, iteratorFn) {
+  let index = 0;
+  const ret = [];
+  const executing = [];
+  const enqueue = async () => {
+    if (index === array.length) return;
+    const item = array[index++];
+    const p = Promise.resolve().then(() => iteratorFn(item, array));
+    ret.push(p);
+    const e = p.then(() => executing.splice(executing.indexOf(e), 1));
+    executing.push(e);
+    let r = Promise.resolve();
+    if (executing.length >= poolLimit) {
+      r = Promise.race(executing);
+    }
+    await r;
+    await enqueue();
+  };
+  await enqueue();
+  return Promise.all(ret);
+}
+
 async function runBackgroundMarketScan() {
   if (isScanRunning) return;
   isScanRunning = true;
 
-  console.log(`Starting optimized background scan across ${MASTER_US_WATCHLIST.length} instruments...`);
+  console.log(`Starting fast batched scan across ${MASTER_US_WATCHLIST.length} instruments...`);
   const detectedSetbacks = [];
   const nowSec = Math.floor(Date.now() / 1000);
   const fourteenDaysAgoSec = nowSec - (14 * 24 * 60 * 60);
 
-  for (let item of MASTER_US_WATCHLIST) {
+  // Scan in concurrent pools of 3 to respect Finnhub limits while speeding up execution
+  await asyncPool(3, MASTER_US_WATCHLIST, async (item) => {
     try {
-      // 1. Fetch Quote
       const quoteResp = await fetch(`https://finnhub.io/api/v1/quote?symbol=${item.symbol}&token=${FINNHUB_API_KEY}`);
       const quote = await quoteResp.json();
 
       if (quote && quote.c && quote.c > 0) {
         const currentPrice = quote.c;
 
-        // 2. Fetch Candles
         const candleResp = await fetch(`https://finnhub.io/api/v1/stock/candle?symbol=${item.symbol}&resolution=D&from=${fourteenDaysAgoSec}&to=${nowSec}&token=${FINNHUB_API_KEY}`);
         const candleData = await candleResp.json();
 
@@ -70,9 +89,8 @@ async function runBackgroundMarketScan() {
           }
         }
 
-        // 3. Check Setback Condition (>= 2.0% drop)
+        // Check Setback Condition (>= 2.0% drop)
         if (dropPct <= -2.0) {
-          // Only fetch news for stocks that actually trigger a setback (saves API rate limit)
           const todayStr = new Date().toISOString().split('T')[0];
           const lastWeekStr = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
           const newsResp = await fetch(`https://finnhub.io/api/v1/company-news?symbol=${item.symbol}&from=${lastWeekStr}&to=${todayStr}&token=${FINNHUB_API_KEY}`);
@@ -106,19 +124,19 @@ async function runBackgroundMarketScan() {
           });
         }
       }
-      // Safe 1.5 second pause between stocks to stay under Finnhub 60 req/min limit
-      await new Promise(r => setTimeout(r, 1500));
+      // Small pause between batch calls
+      await new Promise(r => setTimeout(r, 400));
     } catch (err) {
       console.error(`Error scanning ${item.symbol}:`, err.message);
     }
-  }
+  });
 
   cachedCandidates = detectedSetbacks.sort((a, b) => parseFloat(a.dropPct) - parseFloat(b.dropPct));
   lastScanTimestamp = new Date();
   isScanRunning = false;
 
   console.log(`Scan finished successfully. Found ${cachedCandidates.length} dip setups.`);
-  setTimeout(runBackgroundMarketScan, 180000); // Re-scan every 3 minutes
+  setTimeout(runBackgroundMarketScan, 120000); // Re-scan every 2 minutes
 }
 
 runBackgroundMarketScan();
