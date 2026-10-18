@@ -12,25 +12,29 @@ app.use(express.json());
 
 const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY || "dbai6bhr01qo2u5dvbr0dbai6bhr01qo2u5dvbrg";
 
+// Multi-user equity storage file (or map)
 const EQUITY_FILE = path.join(__dirname, 'equity.json');
 
-function getStoredEquity() {
+function getAllStoredEquities() {
   try {
     if (fs.existsSync(EQUITY_FILE)) {
       const data = fs.readFileSync(EQUITY_FILE, 'utf8');
       const parsed = JSON.parse(data);
-      if (parsed && parsed.equity) return parseFloat(parsed.equity);
+      if (parsed && typeof parsed === 'object') return parsed;
     }
   } catch (e) {
     console.error("Error reading equity.json:", e);
   }
-  return 10000;
+  // Default fallback map with a default user profile
+  return { "default": 10000, "daniel": 41800 };
 }
 
-function saveStoredEquity(val) {
+function saveStoredEquity(userId, val) {
   try {
-    fs.writeFileSync(EQUITY_FILE, JSON.stringify({ equity: val }, null, 2));
-    console.log(`[Settings] Equity updated and saved to disk: $${val}`);
+    const equities = getAllStoredEquities();
+    equities[userId] = val;
+    fs.writeFileSync(EQUITY_FILE, JSON.stringify(equities, null, 2));
+    console.log(`[Settings] Equity for user '${userId}' updated to: $${val}`);
   } catch (e) {
     console.error("Error writing equity.json:", e);
   }
@@ -81,7 +85,6 @@ async function runBackgroundMarketScan() {
       const quoteResp = await fetch(`https://finnhub.io/api/v1/quote?symbol=${item.symbol}&token=${FINNHUB_API_KEY}`);
       if (!quoteResp.ok) {
         if (quoteResp.status === 429) {
-          console.warn(`[Scanner] Rate limit hit (429). Pausing 5s...`);
           await new Promise(r => setTimeout(r, 5000));
         }
         await new Promise(r => setTimeout(r, 1800));
@@ -113,7 +116,6 @@ async function runBackgroundMarketScan() {
         }
 
         if (dropPct <= -2.0) {
-          console.log(`[Scanner] Live match found: ${item.symbol} dropped ${dropPct.toFixed(1)}%`);
           let headline = "Market pullback near key technical support level.";
           let newsUrl = `https://finviz.com/quote.ashx?t=${item.symbol}`;
           let summary = "Technical retracement following broader sector volatility with stable fundamental backdrop.";
@@ -161,8 +163,6 @@ async function runBackgroundMarketScan() {
 
   lastScanTimestamp = new Date();
   isScanRunning = false;
-
-  console.log(`[Scanner] Scan cycle completed. Total candidates found: ${cachedCandidates.length}`);
   setTimeout(runBackgroundMarketScan, 300000);
 }
 
@@ -193,19 +193,22 @@ app.get('/api/setbacks', (req, res) => {
   });
 });
 
+// GET Settings with user support (e.g., /api/settings?userId=daniel)
 app.get('/api/settings', (req, res) => {
-  res.json({ success: true, settings: { equity: getStoredEquity() } });
+  const userId = req.query.userId || 'daniel';
+  const equities = getAllStoredEquities();
+  const equity = equities[userId] !== undefined ? equities[userId] : 10000;
+  res.json({ success: true, settings: { equity } });
 });
 
+// POST Settings with user support
 app.post('/api/settings', (req, res) => {
-  console.log("[Settings] Received POST request body:", req.body);
-  const equity = req.body.equity;
+  const { equity, userId = 'daniel' } = req.body;
   if (equity !== undefined && !isNaN(equity) && Number(equity) > 0) {
     const val = parseFloat(equity);
-    saveStoredEquity(val);
+    saveStoredEquity(userId, val);
     return res.json({ success: true, settings: { equity: val } });
   }
-  console.warn("[Settings] Rejected invalid equity value:", req.body);
   return res.status(400).json({ success: false, error: "Invalid equity value" });
 });
 
