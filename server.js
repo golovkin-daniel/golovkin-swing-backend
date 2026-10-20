@@ -83,7 +83,6 @@ async function runBackgroundMarketScan() {
       const quoteResp = await fetch(`https://finnhub.io/api/v1/quote?symbol=${item.symbol}&token=${FINNHUB_API_KEY}`);
       if (!quoteResp.ok) {
         if (quoteResp.status === 429) {
-          console.warn(`[Scanner] Rate limit hit (429) for ${item.symbol}. Pausing 5s...`);
           await new Promise(r => setTimeout(r, 5000));
         }
         await new Promise(r => setTimeout(r, 1800));
@@ -115,7 +114,7 @@ async function runBackgroundMarketScan() {
         }
 
         if (dropPct <= -2.0) {
-          console.log(`[Scanner] 🎯 Live match found: ${item.symbol} dropped ${dropPct.toFixed(1)}% (Price: $${currentPrice})`);
+          console.log(`[Scanner] 🎯 Match: ${item.symbol} dropped ${dropPct.toFixed(1)}%`);
           let headline = "Market pullback near key technical support level.";
           let newsUrl = `https://finviz.com/quote.ashx?t=${item.symbol}`;
           let summary = "Technical retracement following broader sector volatility with stable fundamental backdrop.";
@@ -163,8 +162,7 @@ async function runBackgroundMarketScan() {
 
   lastScanTimestamp = new Date();
   isScanRunning = false;
-
-  console.log(`[Scanner] Scan cycle completed across all ${MASTER_US_WATCHLIST.length} instruments. Total active candidates: ${cachedCandidates.length}. Next scan in 5 minutes.`);
+  console.log(`[Scanner] Cycle complete. Active candidates: ${cachedCandidates.length}. Next scan in 5 mins.`);
   setTimeout(runBackgroundMarketScan, 300000);
 }
 
@@ -179,6 +177,32 @@ app.get('/api/quote', async (req, res) => {
       return res.json({ success: true, symbol, currentPrice: data.c, high: data.h, low: data.l, open: data.o, prevClose: data.pc });
     }
     return res.status(404).json({ success: false, error: "Symbol not found" });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Stock Health Analysis Endpoint
+app.get('/api/health', async (req, res) => {
+  const symbol = (req.query.symbol || 'AAPL').toUpperCase();
+  try {
+    const resp = await fetch(`https://finnhub.io/api/v1/stock/metric?symbol=${symbol}&metric=all&token=${FINNHUB_API_KEY}`);
+    const data = await resp.json();
+    if (data && data.metric) {
+      return res.json({
+        success: true,
+        symbol,
+        metrics: {
+          peRatio: data.metric.peNormalizedAnnual || data.metric.peExclExtraTTM || 'N/A',
+          week52High: data.metric['52WeekHigh'] || 'N/A',
+          week52Low: data.metric['52WeekLow'] || 'N/A',
+          dividendYield: data.metric.dividendYieldIndicatedAnnual || 'N/A',
+          beta: data.metric.beta || 'N/A',
+          roe: data.metric.roeTTM || 'N/A'
+        }
+      });
+    }
+    return res.status(404).json({ success: false, error: "Health metrics not available" });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
   }
@@ -199,18 +223,16 @@ app.get('/api/settings', (req, res) => {
   const userId = req.query.userId || 'daniel';
   const equities = getAllStoredEquities();
   const equity = equities[userId] !== undefined ? equities[userId] : 10000;
-  res.json({ success: true, settings: { equity } });
+  res.json({ success: true, settings: { equity, userId } });
 });
 
 app.post('/api/settings', (req, res) => {
-  console.log("[Settings] Received POST request body:", req.body);
   const { equity, userId = 'daniel' } = req.body;
   if (equity !== undefined && !isNaN(equity) && Number(equity) > 0) {
     const val = parseFloat(equity);
     saveStoredEquity(userId, val);
-    return res.json({ success: true, settings: { equity: val } });
+    return res.json({ success: true, settings: { equity: val, userId } });
   }
-  console.warn("[Settings] Rejected invalid equity value:", req.body);
   return res.status(400).json({ success: false, error: "Invalid equity value" });
 });
 
