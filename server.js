@@ -14,6 +14,51 @@ const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY || "dbai6bhr01qo2u5dvbr0dbai
 
 const EQUITY_FILE = path.join(__dirname, 'equity.json');
 
+// Add trades storage file path near equity.json
+const TRADES_FILE = path.join(__dirname, 'trades.json');
+
+function getAllStoredTrades() {
+  try {
+    if (fs.existsSync(TRADES_FILE)) {
+      const data = fs.readFileSync(TRADES_FILE, 'utf8');
+      const parsed = JSON.parse(data);
+      if (parsed && typeof parsed === 'object') return parsed;
+    }
+  } catch (e) {
+    console.error("Error reading trades.json:", e);
+  }
+  return {}; // Default empty map per user
+}
+
+function saveStoredTrades(userId, tradesList) {
+  try {
+    const allTrades = getAllStoredTrades();
+    allTrades[userId] = tradesList;
+    fs.writeFileSync(TRADES_FILE, JSON.stringify(allTrades, null, 2));
+    console.log(`[Journal] Saved ${tradesList.length} trades for user '${userId}' to disk.`);
+  } catch (e) {
+    console.error("Error writing trades.json:", e);
+  }
+}
+
+// GET Trades endpoint (e.g. /api/trades?userId=daniel)
+app.get('/api/trades', (req, res) => {
+  const userId = req.query.userId || 'daniel';
+  const allTrades = getAllStoredTrades();
+  const userTrades = allTrades[userId] || [];
+  res.json({ success: true, trades: userTrades });
+});
+
+// POST Trades endpoint (saves full trade array for user)
+app.post('/api/trades', (req, res) => {
+  const { userId = 'daniel', trades } = req.body;
+  if (Array.isArray(trades)) {
+    saveStoredTrades(userId, trades);
+    return res.json({ success: true, count: trades.length });
+  }
+  return res.status(400).json({ success: false, error: "Invalid trades data format" });
+});
+
 function getAllStoredEquities() {
   try {
     if (fs.existsSync(EQUITY_FILE)) {
