@@ -13,52 +13,9 @@ app.use(express.json());
 const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY || "dbai6bhr01qo2u5dvbr0dbai6bhr01qo2u5dvbrg";
 
 const EQUITY_FILE = path.join(__dirname, 'equity.json');
-
-// Add trades storage file path near equity.json
 const TRADES_FILE = path.join(__dirname, 'trades.json');
 
-function getAllStoredTrades() {
-  try {
-    if (fs.existsSync(TRADES_FILE)) {
-      const data = fs.readFileSync(TRADES_FILE, 'utf8');
-      const parsed = JSON.parse(data);
-      if (parsed && typeof parsed === 'object') return parsed;
-    }
-  } catch (e) {
-    console.error("Error reading trades.json:", e);
-  }
-  return {}; // Default empty map per user
-}
-
-function saveStoredTrades(userId, tradesList) {
-  try {
-    const allTrades = getAllStoredTrades();
-    allTrades[userId] = tradesList;
-    fs.writeFileSync(TRADES_FILE, JSON.stringify(allTrades, null, 2));
-    console.log(`[Journal] Saved ${tradesList.length} trades for user '${userId}' to disk.`);
-  } catch (e) {
-    console.error("Error writing trades.json:", e);
-  }
-}
-
-// GET Trades endpoint (e.g. /api/trades?userId=daniel)
-app.get('/api/trades', (req, res) => {
-  const userId = req.query.userId || 'daniel';
-  const allTrades = getAllStoredTrades();
-  const userTrades = allTrades[userId] || [];
-  res.json({ success: true, trades: userTrades });
-});
-
-// POST Trades endpoint (saves full trade array for user)
-app.post('/api/trades', (req, res) => {
-  const { userId = 'daniel', trades } = req.body;
-  if (Array.isArray(trades)) {
-    saveStoredTrades(userId, trades);
-    return res.json({ success: true, count: trades.length });
-  }
-  return res.status(400).json({ success: false, error: "Invalid trades data format" });
-});
-
+// --- Equity Persistence ---
 function getAllStoredEquities() {
   try {
     if (fs.existsSync(EQUITY_FILE)) {
@@ -77,9 +34,34 @@ function saveStoredEquity(userId, val) {
     const equities = getAllStoredEquities();
     equities[userId] = val;
     fs.writeFileSync(EQUITY_FILE, JSON.stringify(equities, null, 2));
-    console.log(`[Settings] Equity for user '${userId}' updated and saved to disk: $${val}`);
+    console.log(`[Settings] Equity for user '${userId}' updated: $${val}`);
   } catch (e) {
     console.error("Error writing equity.json:", e);
+  }
+}
+
+// --- Trade Journal Persistence ---
+function getAllStoredTrades() {
+  try {
+    if (fs.existsSync(TRADES_FILE)) {
+      const data = fs.readFileSync(TRADES_FILE, 'utf8');
+      const parsed = JSON.parse(data);
+      if (parsed && typeof parsed === 'object') return parsed;
+    }
+  } catch (e) {
+    console.error("Error reading trades.json:", e);
+  }
+  return {};
+}
+
+function saveStoredTrades(userId, tradesList) {
+  try {
+    const allTrades = getAllStoredTrades();
+    allTrades[userId] = tradesList;
+    fs.writeFileSync(TRADES_FILE, JSON.stringify(allTrades, null, 2));
+    console.log(`[Journal] Saved ${tradesList.length} trades for user '${userId}'.`);
+  } catch (e) {
+    console.error("Error writing trades.json:", e);
   }
 }
 
@@ -128,6 +110,7 @@ async function runBackgroundMarketScan() {
       const quoteResp = await fetch(`https://finnhub.io/api/v1/quote?symbol=${item.symbol}&token=${FINNHUB_API_KEY}`);
       if (!quoteResp.ok) {
         if (quoteResp.status === 429) {
+          console.warn(`[Scanner] Rate limit hit (429) for ${item.symbol}. Pausing 5s...`);
           await new Promise(r => setTimeout(r, 5000));
         }
         await new Promise(r => setTimeout(r, 1800));
@@ -159,7 +142,7 @@ async function runBackgroundMarketScan() {
         }
 
         if (dropPct <= -2.0) {
-          console.log(`[Scanner] 🎯 Match: ${item.symbol} dropped ${dropPct.toFixed(1)}%`);
+          console.log(`[Scanner] 🎯 Match found: ${item.symbol} dropped ${dropPct.toFixed(1)}% (Price: $${currentPrice})`);
           let headline = "Market pullback near key technical support level.";
           let newsUrl = `https://finviz.com/quote.ashx?t=${item.symbol}`;
           let summary = "Technical retracement following broader sector volatility with stable fundamental backdrop.";
@@ -207,12 +190,13 @@ async function runBackgroundMarketScan() {
 
   lastScanTimestamp = new Date();
   isScanRunning = false;
-  console.log(`[Scanner] Cycle complete. Active candidates: ${cachedCandidates.length}. Next scan in 5 mins.`);
+  console.log(`[Scanner] Scan cycle completed across all ${MASTER_US_WATCHLIST.length} instruments. Total active candidates: ${cachedCandidates.length}. Next scan in 5 minutes.`);
   setTimeout(runBackgroundMarketScan, 300000);
 }
 
 runBackgroundMarketScan();
 
+// API Endpoints
 app.get('/api/quote', async (req, res) => {
   const symbol = (req.query.symbol || 'AAPL').toUpperCase();
   try {
@@ -227,7 +211,6 @@ app.get('/api/quote', async (req, res) => {
   }
 });
 
-// Stock Health Analysis Endpoint
 app.get('/api/health', async (req, res) => {
   const symbol = (req.query.symbol || 'AAPL').toUpperCase();
   try {
@@ -279,6 +262,22 @@ app.post('/api/settings', (req, res) => {
     return res.json({ success: true, settings: { equity: val, userId } });
   }
   return res.status(400).json({ success: false, error: "Invalid equity value" });
+});
+
+app.get('/api/trades', (req, res) => {
+  const userId = req.query.userId || 'daniel';
+  const allTrades = getAllStoredTrades();
+  const userTrades = allTrades[userId] || [];
+  res.json({ success: true, trades: userTrades });
+});
+
+app.post('/api/trades', (req, res) => {
+  const { userId = 'daniel', trades } = req.body;
+  if (Array.isArray(trades)) {
+    saveStoredTrades(userId, trades);
+    return res.json({ success: true, count: trades.length });
+  }
+  return res.status(400).json({ success: false, error: "Invalid trades data" });
 });
 
 const PORT = process.env.PORT || 3000;
