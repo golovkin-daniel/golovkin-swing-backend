@@ -1,8 +1,6 @@
 const express = require('express');
 const cors = require('cors');
 const fetch = require('node-fetch');
-const fs = require('fs');
-const path = require('path');
 const mongoose = require('mongoose');
 
 const MASTER_US_WATCHLIST = require('./watchlist.json');
@@ -16,20 +14,17 @@ if (!FINNHUB_API_KEY) {
   console.warn("WARNING: FINNHUB_API_KEY environment variable is missing!");
 }
 
-const EQUITY_FILE = path.join(__dirname, 'equity.json');
-const TRADES_FILE = path.join(__dirname, 'trades.json');
-
 // Read the connection string safely from environment variables
 const MONGO_URI = process.env.MONGO_URI;
 if (!MONGO_URI) {
-  console.warn("WARNING: MONGO_URI environment variable is missing!");
+  console.error("FATAL ERROR: MONGO_URI environment variable is not defined!");
+} else {
+  mongoose.connect(MONGO_URI, { dbName: 'golovkin_swing' })
+    .then(() => console.log('Successfully connected to MongoDB Atlas!'))
+    .catch(err => console.error('MongoDB connection error:', err));
 }
 
-mongoose.connect(MONGO_URI)
-  .then(() => console.log('Connected to MongoDB Atlas successfully!'))
-  .catch(err => console.error('MongoDB connection error:', err));
-
-// 2. Define Schemas
+// 2. Define Mongoose Schemas & Models
 const TradeSchema = new mongoose.Schema({
   userId: { type: String, required: true, index: true },
   id: { type: Number, required: true },
@@ -51,15 +46,13 @@ const TradeSchema = new mongoose.Schema({
 
 const SettingsSchema = new mongoose.Schema({
   userId: { type: String, required: true, unique: true },
-  equity: { type: Number, default: 41800 }
+  equity: { type: Number, default: 10000 }
 });
 
 const Trade = mongoose.model('Trade', TradeSchema);
 const Settings = mongoose.model('Settings', SettingsSchema);
 
-// 3. API Endpoints
-
-// GET Trades for User
+// 3. API Endpoints for Trades (MongoDB-backed)
 app.get('/api/trades', async (req, res) => {
   try {
     const userId = (req.query.userId || 'daniel').toLowerCase();
@@ -70,13 +63,12 @@ app.get('/api/trades', async (req, res) => {
   }
 });
 
-// SAVE/SYNC Trades for User
 app.post('/api/trades', async (req, res) => {
   try {
     const userId = (req.body.userId || 'daniel').toLowerCase();
     const incomingTrades = req.body.trades || [];
 
-    // Replace user's trades atomically
+    // Replace user's trades atomically in DB
     await Trade.deleteMany({ userId });
     
     if (incomingTrades.length > 0) {
@@ -84,98 +76,49 @@ app.post('/api/trades', async (req, res) => {
       await Trade.insertMany(formatted);
     }
     
-    res.json({ success: true });
+    res.json({ success: true, count: incomingTrades.length });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-// GET User Equity Settings
+// 4. API Endpoints for Settings/Equity (MongoDB-backed)
 app.get('/api/settings', async (req, res) => {
   try {
     const userId = (req.query.userId || 'daniel').toLowerCase();
     let settings = await Settings.findOne({ userId });
     if (!settings) {
-      settings = await Settings.create({ userId, equity: 41800 });
+      settings = await Settings.create({ userId, equity: 10000 });
     }
-    res.json({ success: true, settings });
+    res.json({ success: true, settings: { equity: settings.equity, userId } });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-// SAVE User Equity Settings
 app.post('/api/settings', async (req, res) => {
   try {
-    const userId = (req.body.userId || 'daniel').toLowerCase();
-    const equity = parseFloat(req.body.equity);
+    const { equity, userId = 'daniel' } = req.body;
+    const cleanUserId = userId.toLowerCase();
+    const val = parseFloat(equity);
 
-    if (isNaN(equity) || equity <= 0) {
-      return res.status(400).json({ success: false, message: "Invalid equity value" });
+    if (isNaN(val) || val <= 0) {
+      return res.status(400).json({ success: false, error: "Invalid equity value" });
     }
 
     const settings = await Settings.findOneAndUpdate(
-      { userId },
-      { equity },
+      { userId: cleanUserId },
+      { equity: val },
       { upsert: true, new: true }
     );
 
-    res.json({ success: true, settings });
+    res.json({ success: true, settings: { equity: settings.equity, userId: cleanUserId } });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-// --- Equity Persistence ---
-function getAllStoredEquities() {
-  try {
-    if (fs.existsSync(EQUITY_FILE)) {
-      const data = fs.readFileSync(EQUITY_FILE, 'utf8');
-      const parsed = JSON.parse(data);
-      if (parsed && typeof parsed === 'object') return parsed;
-    }
-  } catch (e) {
-    console.error("Error reading equity.json:", e);
-  }
-  return { "default": 10000, "daniel": 41800 };
-}
-
-function saveStoredEquity(userId, val) {
-  try {
-    const equities = getAllStoredEquities();
-    equities[userId] = val;
-    fs.writeFileSync(EQUITY_FILE, JSON.stringify(equities, null, 2));
-    console.log(`[Settings] Equity for user '${userId}' updated: $${val}`);
-  } catch (e) {
-    console.error("Error writing equity.json:", e);
-  }
-}
-
-// --- Trade Journal Persistence ---
-function getAllStoredTrades() {
-  try {
-    if (fs.existsSync(TRADES_FILE)) {
-      const data = fs.readFileSync(TRADES_FILE, 'utf8');
-      const parsed = JSON.parse(data);
-      if (parsed && typeof parsed === 'object') return parsed;
-    }
-  } catch (e) {
-    console.error("Error reading trades.json:", e);
-  }
-  return {};
-}
-
-function saveStoredTrades(userId, tradesList) {
-  try {
-    const allTrades = getAllStoredTrades();
-    allTrades[userId] = tradesList;
-    fs.writeFileSync(TRADES_FILE, JSON.stringify(allTrades, null, 2));
-    console.log(`[Journal] Saved ${tradesList.length} trades for user '${userId}'.`);
-  } catch (e) {
-    console.error("Error writing trades.json:", e);
-  }
-}
-
+// --- Market Scanner Setup ---
 let cachedCandidates = [
   {
     ticker: "TSLA",
@@ -253,7 +196,6 @@ async function runBackgroundMarketScan() {
         }
 
         if (dropPct <= -2.0) {
-          console.log(`[Scanner] 🎯 Match found: ${item.symbol} dropped ${dropPct.toFixed(1)}% (Price: $${currentPrice})`);
           let headline = "Market pullback near key technical support level.";
           let newsUrl = `https://finviz.com/quote.ashx?t=${item.symbol}`;
           let summary = "Technical retracement following broader sector volatility with stable fundamental backdrop.";
@@ -274,7 +216,7 @@ async function runBackgroundMarketScan() {
           const estimatedStop = currentPrice * 0.97;
           const estimatedTarget = currentPrice + ((currentPrice - estimatedStop) * 2);
 
-          const candidate = {
+          detectedSetbacks.push({
             ticker: item.symbol,
             name: item.name || item.symbol,
             currentPrice,
@@ -286,9 +228,7 @@ async function runBackgroundMarketScan() {
             entry: currentPrice,
             stop: estimatedStop,
             target: estimatedTarget
-          };
-
-          detectedSetbacks.push(candidate);
+          });
           cachedCandidates = [...detectedSetbacks].sort((a, b) => parseFloat(a.dropPct) - parseFloat(b.dropPct));
         }
       }
@@ -301,13 +241,13 @@ async function runBackgroundMarketScan() {
 
   lastScanTimestamp = new Date();
   isScanRunning = false;
-  console.log(`[Scanner] Scan cycle completed across all ${MASTER_US_WATCHLIST.length} instruments. Total active candidates: ${cachedCandidates.length}. Next scan in 5 minutes.`);
+  console.log(`[Scanner] Scan cycle completed. Total active candidates: ${cachedCandidates.length}. Next scan in 5 minutes.`);
   setTimeout(runBackgroundMarketScan, 300000);
 }
 
 runBackgroundMarketScan();
 
-// API Endpoints
+// Finnhub / Quote & Health Endpoints
 app.get('/api/quote', async (req, res) => {
   const symbol = (req.query.symbol || 'AAPL').toUpperCase();
   try {
@@ -356,39 +296,6 @@ app.get('/api/setbacks', (req, res) => {
     count: cachedCandidates.length,
     candidates: cachedCandidates
   });
-});
-
-app.get('/api/settings', (req, res) => {
-  const userId = req.query.userId || 'daniel';
-  const equities = getAllStoredEquities();
-  const equity = equities[userId] !== undefined ? equities[userId] : 10000;
-  res.json({ success: true, settings: { equity, userId } });
-});
-
-app.post('/api/settings', (req, res) => {
-  const { equity, userId = 'daniel' } = req.body;
-  if (equity !== undefined && !isNaN(equity) && Number(equity) > 0) {
-    const val = parseFloat(equity);
-    saveStoredEquity(userId, val);
-    return res.json({ success: true, settings: { equity: val, userId } });
-  }
-  return res.status(400).json({ success: false, error: "Invalid equity value" });
-});
-
-app.get('/api/trades', (req, res) => {
-  const userId = req.query.userId || 'daniel';
-  const allTrades = getAllStoredTrades();
-  const userTrades = allTrades[userId] || [];
-  res.json({ success: true, trades: userTrades });
-});
-
-app.post('/api/trades', (req, res) => {
-  const { userId = 'daniel', trades } = req.body;
-  if (Array.isArray(trades)) {
-    saveStoredTrades(userId, trades);
-    return res.json({ success: true, count: trades.length });
-  }
-  return res.status(400).json({ success: false, error: "Invalid trades data" });
 });
 
 const PORT = process.env.PORT || 3000;
