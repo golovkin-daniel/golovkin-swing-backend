@@ -11,14 +11,14 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY || "dbai6bhr01qo2u5dvbr0dbai6bhr01qo2u5dvbrg";
+const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY;
 
 const EQUITY_FILE = path.join(__dirname, 'equity.json');
 const TRADES_FILE = path.join(__dirname, 'trades.json');
 
 
-// 1. Connect to MongoDB Atlas
-const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://epwdaad_db_user:UIFSWgbM8ro8FJqn@cluster0.ls5ci8g.mongodb.net/";
+// Read the connection string safely from environment variables
+const MONGO_URI = process.env.MONGO_URI;
 
 mongoose.connect(MONGO_URI)
   .then(() => console.log('Connected to MongoDB Atlas successfully!'))
