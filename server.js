@@ -12,13 +12,18 @@ app.use(cors());
 app.use(express.json());
 
 const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY;
+if (!FINNHUB_API_KEY) {
+  console.warn("WARNING: FINNHUB_API_KEY environment variable is missing!");
+}
 
 const EQUITY_FILE = path.join(__dirname, 'equity.json');
 const TRADES_FILE = path.join(__dirname, 'trades.json');
 
-
 // Read the connection string safely from environment variables
 const MONGO_URI = process.env.MONGO_URI;
+if (!MONGO_URI) {
+  console.warn("WARNING: MONGO_URI environment variable is missing!");
+}
 
 mongoose.connect(MONGO_URI)
   .then(() => console.log('Connected to MongoDB Atlas successfully!'))
