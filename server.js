@@ -3,6 +3,7 @@ const cors = require('cors');
 const fetch = require('node-fetch');
 const fs = require('fs');
 const path = require('path');
+const mongoose = require('mongoose');
 
 const MASTER_US_WATCHLIST = require('./watchlist.json');
 
@@ -14,6 +15,111 @@ const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY || "dbai6bhr01qo2u5dvbr0dbai
 
 const EQUITY_FILE = path.join(__dirname, 'equity.json');
 const TRADES_FILE = path.join(__dirname, 'trades.json');
+
+
+// 1. Connect to MongoDB Atlas
+const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://epwdaad_db_user:UIFSWgbM8ro8FJqn@cluster0.ls5ci8g.mongodb.net/";
+
+mongoose.connect(MONGO_URI)
+  .then(() => console.log('Connected to MongoDB Atlas successfully!'))
+  .catch(err => console.error('MongoDB connection error:', err));
+
+// 2. Define Schemas
+const TradeSchema = new mongoose.Schema({
+  userId: { type: String, required: true, index: true },
+  id: { type: Number, required: true },
+  ticker: String,
+  status: String,
+  entryDate: String,
+  exitDate: String,
+  entry: Number,
+  stop: Number,
+  target: Number,
+  shares: Number,
+  risk: Number,
+  maxWin: Number,
+  rrRatio: String,
+  exit: Number,
+  pnl: Number,
+  winDelta: Number
+}, { timestamps: true });
+
+const SettingsSchema = new mongoose.Schema({
+  userId: { type: String, required: true, unique: true },
+  equity: { type: Number, default: 41800 }
+});
+
+const Trade = mongoose.model('Trade', TradeSchema);
+const Settings = mongoose.model('Settings', SettingsSchema);
+
+// 3. API Endpoints
+
+// GET Trades for User
+app.get('/api/trades', async (req, res) => {
+  try {
+    const userId = (req.query.userId || 'daniel').toLowerCase();
+    const trades = await Trade.find({ userId }).sort({ id: -1 });
+    res.json({ success: true, trades });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// SAVE/SYNC Trades for User
+app.post('/api/trades', async (req, res) => {
+  try {
+    const userId = (req.body.userId || 'daniel').toLowerCase();
+    const incomingTrades = req.body.trades || [];
+
+    // Replace user's trades atomically
+    await Trade.deleteMany({ userId });
+    
+    if (incomingTrades.length > 0) {
+      const formatted = incomingTrades.map(t => ({ ...t, userId }));
+      await Trade.insertMany(formatted);
+    }
+    
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// GET User Equity Settings
+app.get('/api/settings', async (req, res) => {
+  try {
+    const userId = (req.query.userId || 'daniel').toLowerCase();
+    let settings = await Settings.findOne({ userId });
+    if (!settings) {
+      settings = await Settings.create({ userId, equity: 41800 });
+    }
+    res.json({ success: true, settings });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// SAVE User Equity Settings
+app.post('/api/settings', async (req, res) => {
+  try {
+    const userId = (req.body.userId || 'daniel').toLowerCase();
+    const equity = parseFloat(req.body.equity);
+
+    if (isNaN(equity) || equity <= 0) {
+      return res.status(400).json({ success: false, message: "Invalid equity value" });
+    }
+
+    const settings = await Settings.findOneAndUpdate(
+      { userId },
+      { equity },
+      { upsert: true, new: true }
+    );
+
+    res.json({ success: true, settings });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 // --- Equity Persistence ---
 function getAllStoredEquities() {
